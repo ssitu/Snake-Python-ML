@@ -13,7 +13,7 @@ class Snake(game.Game):
     # Graphics related
     _pixels_screen_size = 768
     # Time related
-    _time_movement_delay_secs_default = .132
+    _time_movement_delay_secs_default = .11
     _time_movement_delay_secs = _time_movement_delay_secs_default
     _time_since_last_movement_secs = 0
     # Grid related
@@ -91,13 +91,17 @@ class Snake(game.Game):
         self._set_cell_snake_body(start_row, start_col-3)
         self._snake_list.append([start_row, start_col-3])
 
-    # Call before snake moves in the next determined location and after the new direction has been determined
-    def _routine_apple(self, next_direction):
-        snake_head_location = self._snake_list[0]
-        next_head_location_row = snake_head_location[0] + next_direction[0]
-        next_head_location_col = snake_head_location[1] + next_direction[1]
+    def _routine_reset_game(self):
+        self._snake_list = []
+        self._snake_direction = self._direction_right
+        self._snake_direction_next = self._snake_direction
+        self._place_starting_snake()
+
+    # Call after the new direction has been determined but before snake moves in the next determined location
+    def _routine_apple(self, next_head_location_row, next_head_location_col):
         will_eat_apple = self._grid[next_head_location_row][next_head_location_col] == self._grid_cell_apple
         if will_eat_apple:
+            self._snake_status = self._snake_status_eaten_apple
             # Add a body cell to the snake at the tail location
             tail_location = self._snake_list[-1]
             self._snake_list.append([tail_location[0], tail_location[1]])
@@ -105,11 +109,19 @@ class Snake(game.Game):
             # the new head pixels replace the apple pixels
             # the new head cell value replaces the grid cell value for the apple
 
-    def _snake_move(self, direction):
+    # Call after the new direction has been determined but before snake moves in the next determined location
+    def _routine_collision_edges(self, next_head_location_row, next_head_location_col):
+        will_collide_horizontal_edges = next_head_location_row > self._grid_height or next_head_location_row < 0
+        will_collide_vertical_edges = next_head_location_col > self._grid_width or next_head_location_col < 0
+        will_collide_edge = will_collide_horizontal_edges or will_collide_vertical_edges
+        if will_collide_edge:
+            self._snake_status = self._snake_status_hit_edge
+
+    def _routine_snake_move(self, next_head_location_row, next_head_location_col):
         cell_next = self._snake_list[0].copy()
         # Move head
-        self._snake_list[0][0] += direction[0]
-        self._snake_list[0][1] += direction[1]
+        self._snake_list[0][0] = next_head_location_row
+        self._snake_list[0][1] = next_head_location_col
         self._set_cell_snake_head(self._snake_list[0][0], self._snake_list[0][1])
         # Move each body part
         body_length = len(self._snake_list)
@@ -123,8 +135,7 @@ class Snake(game.Game):
         if self._grid[cell_next[0]][cell_next[1]] == self._grid_cell_snake_body:
             self._set_cell_empty(cell_next[0], cell_next[1])
 
-    def _routine_snake_movement(self):
-        # Key inputs
+    def _routine_inputs(self):
         direction = None
         if self._events_key_down:
             if self._events_key_down[-1].unicode == "w":
@@ -137,19 +148,25 @@ class Snake(game.Game):
                 direction = self._direction_right
             if direction is not None and self._snake_direction != (direction[0]*-1, direction[1]*-1):
                 self._snake_direction_next = direction
+
+    def _routine_move_snake_by_delay(self):
         # Movement with set delay
         self._time_since_last_movement_secs += self._game_frame_delay
         if self._time_since_last_movement_secs > self._time_movement_delay_secs:
             self._snake_direction = self._snake_direction_next
-            self._routine_apple(self._snake_direction)
-            self._snake_move(self._snake_direction)
+            next_head_location_row = self._snake_list[0][0] + self._snake_direction[0]
+            next_head_location_col = self._snake_list[0][1] + self._snake_direction[1]
+            self._routine_apple(next_head_location_row, next_head_location_col)
+            self._routine_snake_move(next_head_location_row, next_head_location_col)
             self._time_since_last_movement_secs = 0
 
     def start(self):
-        self._place_starting_snake()
+        self._routine_reset_game()
         while not self.game_quit:
             self.update()
-            self._routine_snake_movement()
+            self._snake_status = self._snake_status_nothing
+            self._routine_inputs()
+            self._routine_move_snake_by_delay()
 
     def set_speed(self, speed_factor):
         self._time_movement_delay_secs /= max(0, speed_factor)
