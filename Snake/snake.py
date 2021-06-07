@@ -40,11 +40,15 @@ class Snake(game.Game):
         print("Snake initialization started.")
         game.Game.__init__(self, self._pixels_screen_size, self._pixels_screen_size)
         self.game_screen.fill(self._color_empty)
-        self._grid_width = grid_width
+        # Add two to the grid width and height to add a buffer around the grid to show end states
+        # when the head moves out of bounds
+        self._grid_width = grid_width + 2
+        self._grid_visible_width = grid_width
         print("Grid Width:", grid_width, end=" | ")
-        self._grid_height = grid_height
+        self._grid_height = grid_height + 2
+        self._grid_visible_height = grid_height
         print("Grid Height:", grid_height, end=" | ")
-        self._grid = [[0 for col in range(grid_width)] for row in range(grid_height)]
+        self._grid = [[0 for col in range(self._grid_width)] for row in range(self._grid_height)]
         self._pixels_unit_width = self._pixels_screen_size / grid_width
         self._pixels_unit_height = self._pixels_screen_size / grid_height
         self._pixels_border_percentage = snake_pixels_border_percentage
@@ -56,8 +60,9 @@ class Snake(game.Game):
         print("\nSnake initialization finished.")
 
     def _set_grid_fill(self, row, col, pygame_color):
-        start_x = col * self._pixels_unit_width
-        start_y = row * self._pixels_unit_height
+        # Must subtract one to the coordinates due to the hidden border around the outside of the game window
+        start_x = (col-1) * self._pixels_unit_width
+        start_y = (row-1) * self._pixels_unit_height
         center_x = start_x + self._pixels_border_offset_x
         center_y = start_y + self._pixels_border_offset_y
         rectangle = pygame.Rect(center_x, center_y, self._pixels_unit_center_width, self._pixels_unit_center_height)
@@ -95,6 +100,9 @@ class Snake(game.Game):
         self._snake_list = []
         self._snake_direction = self._direction_right
         self._snake_direction_next = self._snake_direction
+        self._grid = [[0 for col in range(self._grid_width)] for row in range(self._grid_height)]
+        background_rectangle = pygame.Rect(0, 0, self._pixels_screen_size, self._pixels_screen_size)
+        pygame.draw.rect(self.game_screen, self._color_empty, background_rectangle)
         self._place_starting_snake()
 
     # Call after the new direction has been determined but before snake moves in the next determined location
@@ -111,8 +119,9 @@ class Snake(game.Game):
 
     # Call after the new direction has been determined but before snake moves in the next determined location
     def _routine_collision_edges(self, next_head_location_row, next_head_location_col):
-        will_collide_horizontal_edges = next_head_location_row > self._grid_height or next_head_location_row < 0
-        will_collide_vertical_edges = next_head_location_col > self._grid_width or next_head_location_col < 0
+        # Must compensate for the grid's extra row and column
+        will_collide_horizontal_edges = next_head_location_row > self._grid_visible_height or next_head_location_row < 1
+        will_collide_vertical_edges = next_head_location_col > self._grid_visible_width or next_head_location_col < 1
         will_collide_edge = will_collide_horizontal_edges or will_collide_vertical_edges
         if will_collide_edge:
             self._snake_status = self._snake_status_hit_edge
@@ -156,6 +165,7 @@ class Snake(game.Game):
             self._snake_direction = self._snake_direction_next
             next_head_location_row = self._snake_list[0][0] + self._snake_direction[0]
             next_head_location_col = self._snake_list[0][1] + self._snake_direction[1]
+            self._routine_collision_edges(next_head_location_row, next_head_location_col)
             self._routine_apple(next_head_location_row, next_head_location_col)
             self._routine_snake_move(next_head_location_row, next_head_location_col)
             self._time_since_last_movement_secs = 0
@@ -164,6 +174,10 @@ class Snake(game.Game):
         self._routine_reset_game()
         while not self.game_quit:
             self.update()
+            game_over = self._snake_status == self._snake_status_hit_edge or \
+                self._snake_status == self._snake_status_hit_body
+            if game_over:
+                self._routine_reset_game()
             self._snake_status = self._snake_status_nothing
             self._routine_inputs()
             self._routine_move_snake_by_delay()
