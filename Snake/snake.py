@@ -1,7 +1,7 @@
 import Snake.game as game
 import pygame
 import random
-import math
+import time
 
 
 class Snake(game.Game):
@@ -13,7 +13,7 @@ class Snake(game.Game):
     # Graphics related
     _pixels_screen_size = 768
     # Time related
-    _time_movement_delay_secs_default = .11
+    _time_movement_delay_secs_default = .12
     _time_movement_delay_secs = _time_movement_delay_secs_default
     _time_since_last_movement_secs = 0
     # Grid related
@@ -104,9 +104,20 @@ class Snake(game.Game):
         background_rectangle = pygame.Rect(0, 0, self._pixels_screen_size, self._pixels_screen_size)
         pygame.draw.rect(self.game_screen, self._color_empty, background_rectangle)
         self._place_starting_snake()
+        self._routine_apple_spawn()
+
+    def _routine_apple_spawn(self):
+        # Pick a random location on the visible part of the grid
+        random_row = random.randint(1, self._grid_visible_height)
+        random_col = random.randint(1, self._grid_visible_width)
+        # Keep getting a new location until the random location is empty
+        while self._grid[random_row][random_col] != self._grid_cell_empty:
+            random_row = random.randint(1, self._grid_visible_height)
+            random_col = random.randint(1, self._grid_visible_width)
+        self._set_cell_apple(random_row, random_col)
 
     # Call after the new direction has been determined but before snake moves in the next determined location
-    def _routine_apple(self, next_head_location_row, next_head_location_col):
+    def _routine_apple_eaten(self, next_head_location_row, next_head_location_col):
         will_eat_apple = self._grid[next_head_location_row][next_head_location_col] == self._grid_cell_apple
         if will_eat_apple:
             self._snake_status = self._snake_status_eaten_apple
@@ -116,6 +127,7 @@ class Snake(game.Game):
             # No other logic is needed:
             # the new head pixels replace the apple pixels
             # the new head cell value replaces the grid cell value for the apple
+            self._routine_apple_spawn()
 
     # Call after the new direction has been determined but before snake moves in the next determined location
     def _routine_collision_edges(self, next_head_location_row, next_head_location_col):
@@ -125,6 +137,10 @@ class Snake(game.Game):
         will_collide_edge = will_collide_horizontal_edges or will_collide_vertical_edges
         if will_collide_edge:
             self._snake_status = self._snake_status_hit_edge
+
+    # Call after the new direction has been determined but before snake moves in the next determined location
+    def _routine_collision_body(self, next_head_location_row, next_head_location_col):
+        pass
 
     def _routine_snake_move(self, next_head_location_row, next_head_location_col):
         cell_next = self._snake_list[0].copy()
@@ -166,7 +182,7 @@ class Snake(game.Game):
             next_head_location_row = self._snake_list[0][0] + self._snake_direction[0]
             next_head_location_col = self._snake_list[0][1] + self._snake_direction[1]
             self._routine_collision_edges(next_head_location_row, next_head_location_col)
-            self._routine_apple(next_head_location_row, next_head_location_col)
+            self._routine_apple_eaten(next_head_location_row, next_head_location_col)
             self._routine_snake_move(next_head_location_row, next_head_location_col)
             self._time_since_last_movement_secs = 0
 
@@ -174,9 +190,13 @@ class Snake(game.Game):
         self._routine_reset_game()
         while not self.game_quit:
             self.update()
-            game_over = self._snake_status == self._snake_status_hit_edge or \
-                self._snake_status == self._snake_status_hit_body
-            if game_over:
+            if self._snake_status == self._snake_status_hit_edge:
+                # Nice to see the head move off the screen to indicate collision with the edge
+                # Already does it with the extra two rows and columns and compensation in the fill_grid function,
+                # but it happens too fast to be able to see so sleep is needed before resetting the game
+                time.sleep(self._time_movement_delay_secs)
+                self._routine_reset_game()
+            if self._snake_status == self._snake_status_hit_body:
                 self._routine_reset_game()
             self._snake_status = self._snake_status_nothing
             self._routine_inputs()
