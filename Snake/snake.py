@@ -140,7 +140,12 @@ class Snake(game.Game):
 
     # Call after the new direction has been determined but before snake moves in the next determined location
     def _routine_collision_body(self, next_head_location_row, next_head_location_col):
-        pass
+        will_collide_body = self._grid[next_head_location_row][next_head_location_col] == self._grid_cell_snake_body
+        if will_collide_body:
+            tail = self._snake_list[-1]
+            body_is_tail = next_head_location_row == tail[0] and next_head_location_col == tail[1]
+            if not body_is_tail:
+                self._snake_status = self._snake_status_hit_body
 
     def _routine_snake_move(self, next_head_location_row, next_head_location_col):
         cell_next = self._snake_list[0].copy()
@@ -182,6 +187,7 @@ class Snake(game.Game):
             next_head_location_row = self._snake_list[0][0] + self._snake_direction[0]
             next_head_location_col = self._snake_list[0][1] + self._snake_direction[1]
             self._routine_collision_edges(next_head_location_row, next_head_location_col)
+            self._routine_collision_body(next_head_location_row, next_head_location_col)
             self._routine_apple_eaten(next_head_location_row, next_head_location_col)
             self._routine_snake_move(next_head_location_row, next_head_location_col)
             self._time_since_last_movement_secs = 0
@@ -194,9 +200,11 @@ class Snake(game.Game):
                 # Nice to see the head move off the screen to indicate collision with the edge
                 # Already does it with the extra two rows and columns and compensation in the fill_grid function,
                 # but it happens too fast to be able to see so sleep is needed before resetting the game
-                time.sleep(self._time_movement_delay_secs)
+                time.sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             if self._snake_status == self._snake_status_hit_body:
+                # Same process with the edge collision applies here
+                time.sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             self._snake_status = self._snake_status_nothing
             self._routine_inputs()
