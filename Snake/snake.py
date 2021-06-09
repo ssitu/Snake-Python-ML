@@ -258,5 +258,17 @@ class Snake(game.Game):
     def get_length(self):
         return len(self._snake_list)
 
-    def get_status(self):
-        return self._snake_status
+    def is_status_hit_body(self):
+        return self._snake_status == self._snake_status_hit_body
+
+    def is_status_hit_edge(self):
+        return self._snake_status == self._snake_status_hit_edge
+
+    def is_status_apple_eaten(self):
+        return self._snake_status == self._snake_status_eaten_apple
+
+    def is_status_win(self):
+        return self._snake_status == self._snake_status_win
+
+    def is_status_lose(self):
+        return self.is_status_hit_edge() or self.is_status_hit_body()
