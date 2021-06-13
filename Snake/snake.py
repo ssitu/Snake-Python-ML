@@ -244,7 +244,6 @@ class Snake(game.Game):
             self._routine_snake_move(next_head_location_row, next_head_location_col)
             self._routine_win()
             self._time_since_last_movement_secs = 0
-            self._print_grid()
 
     def start(self):
         self._routine_reset_game()
