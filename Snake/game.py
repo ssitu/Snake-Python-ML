@@ -50,6 +50,7 @@ class Game:
         self._call_dict_routines(self._external_routines_key_up)
 
     def update(self):
+        self._call_dict_routines(self._external_routines_update)
         self._update_game_events()
         if self._events_quit:
             self._routine_quit()
