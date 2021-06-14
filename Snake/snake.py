@@ -234,7 +234,7 @@ class Snake(game.Game):
     def _routine_move_snake_by_delay(self):
         # Movement with set delay
         self._time_since_last_movement_secs += self._game_frame_delay
-        if self._time_since_last_movement_secs > self._time_movement_delay_secs:
+        if self._time_since_last_movement_secs > self._time_movement_delay_secs or self._time_no_sleep:
             self._snake_direction = self._snake_direction_next
             next_head_location_row = self._snake_list[0][0] + self._snake_direction[0]
             next_head_location_col = self._snake_list[0][1] + self._snake_direction[1]
@@ -253,18 +253,22 @@ class Snake(game.Game):
                 # Nice to see the head move off the screen to indicate collision with the edge
                 # Already does it with the extra two rows and columns and compensation in the fill_grid function,
                 # but it happens too fast to be able to see so sleep is needed before resetting the game
-                time.sleep(self._time_movement_delay_secs * 2)
+                if not self._time_no_sleep:
+                    time.sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             if self._snake_status == self._snake_status_hit_body:
                 # Same process with the edge collision applies here
-                time.sleep(self._time_movement_delay_secs * 2)
+                if not self._time_no_sleep:
+                    time.sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             if self._snake_status == self._snake_status_win:
+                print("Win!")
                 for row in range(1, self._grid_visible_height + 1):
                     for col in range(1, self._grid_visible_width + 1):
                         self._set_grid_fill(row, col, self._color_snake_head)
                 pygame.display.flip()
-                time.sleep(self._time_movement_delay_secs * 2)
+                if not self._time_no_sleep:
+                    time.sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             self._snake_status = self._snake_status_nothing
             self._routine_inputs_keys()
@@ -311,4 +315,4 @@ class Snake(game.Game):
         return [[self._grid[row][col] for col in range(1, self._grid_width)] for row in range(1, self._grid_height)]
 
     def get_head_location(self):
-        return self._snake_list[0]
+        return self._snake_list[0].copy()

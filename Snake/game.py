@@ -21,6 +21,11 @@ class Game:
         self._external_routines_quit = {}
         self._external_routines_key_down = {}
         self._external_routines_key_up = {}
+        self._time_no_sleep = False
+
+    def set_max_speed(self):
+        self._game_frame_delay = 0
+        self._time_no_sleep = True
 
     def add_routine_update(self, routine, parameters):
         self._external_routines_update[routine] = parameters
@@ -39,6 +44,9 @@ class Game:
         for routine, parameters in dict_routines.items():
             routine(*parameters)
 
+    def _routine_update(self):
+        self._call_dict_routines(self._external_routines_update)
+
     def _routine_quit(self):
         self.game_quit = True
         self._call_dict_routines(self._external_routines_quit)
@@ -50,7 +58,7 @@ class Game:
         self._call_dict_routines(self._external_routines_key_up)
 
     def update(self):
-        self._call_dict_routines(self._external_routines_update)
+        self._routine_update()
         self._update_game_events()
         if self._events_quit:
             self._routine_quit()
@@ -59,4 +67,5 @@ class Game:
         if self._events_key_up:
             self._routine_key_up()
         pygame.display.flip()
-        time.sleep(self._game_frame_delay)
+        if not self._time_no_sleep:
+            time.sleep(self._game_frame_delay)
