@@ -253,13 +253,11 @@ class Snake(game.Game):
                 # Nice to see the head move off the screen to indicate collision with the edge
                 # Already does it with the extra two rows and columns and compensation in the fill_grid function,
                 # but it happens too fast to be able to see so sleep is needed before resetting the game
-                if not self._time_no_sleep:
-                    time.sleep(self._time_movement_delay_secs * 2)
+                self._toggleable_sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             if self._snake_status == self._snake_status_hit_body:
                 # Same process with the edge collision applies here
-                if not self._time_no_sleep:
-                    time.sleep(self._time_movement_delay_secs * 2)
+                self._toggleable_sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             if self._snake_status == self._snake_status_win:
                 print("Win!")
@@ -267,8 +265,7 @@ class Snake(game.Game):
                     for col in range(1, self._grid_visible_width + 1):
                         self._set_grid_fill(row, col, self._color_snake_head)
                 pygame.display.flip()
-                if not self._time_no_sleep:
-                    time.sleep(self._time_movement_delay_secs * 2)
+                self._toggleable_sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             self._snake_status = self._snake_status_nothing
             self._routine_inputs_keys()

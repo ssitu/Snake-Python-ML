@@ -39,6 +39,10 @@ class Game:
     def add_routine_key_up(self, routine, parameters):
         self._external_routines_key_up[routine] = parameters
 
+    def _toggleable_sleep(self, seconds):
+        if not self._time_no_sleep:
+            time.sleep(self._game_frame_delay)
+
     @staticmethod
     def _call_dict_routines(dict_routines):
         for routine, parameters in dict_routines.items():
@@ -67,5 +71,4 @@ class Game:
         if self._events_key_up:
             self._routine_key_up()
         pygame.display.flip()
-        if not self._time_no_sleep:
-            time.sleep(self._game_frame_delay)
+        self._toggleable_sleep(self._game_frame_delay)
