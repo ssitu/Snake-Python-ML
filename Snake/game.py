@@ -41,7 +41,7 @@ class Game:
 
     def _toggleable_sleep(self, seconds):
         if not self._time_no_sleep:
-            time.sleep(self._game_frame_delay)
+            time.sleep(seconds)
 
     @staticmethod
     def _call_dict_routines(dict_routines):
