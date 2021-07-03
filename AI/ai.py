@@ -1,12 +1,11 @@
-import Snake.snake as snake
-
-
 class Ai:
     game = None
 
+    # To be implemented in inheriting classes
     def init_vars(self):
         pass
 
+    # To be implemented in inheriting classes
     def update(self):
         pass
 

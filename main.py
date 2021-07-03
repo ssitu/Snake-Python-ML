@@ -1,9 +1,9 @@
 import Snake.snake as snake
 from AI.naive import Naive
-from AI.supervised import Supervised
+from AI.averaging import Averaging
 
 snake = snake.Snake()
 # snake.set_max_speed()
 # naive = Naive(snake)
-# supervised = Supervised(snake)
+averaging = Averaging(snake)
 snake.start()

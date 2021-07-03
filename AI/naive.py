@@ -182,6 +182,8 @@ class Naive(ai.Ai):
         # Check if the snake has moved to avoid making repetitive decisions
         if self.head_location != current_head_location:
             self.head_location = current_head_location
+            # Start of algorithm
+            # Switch path when at grid location (1, 1)
             if self.path_queue is not None and self.head_location[0] == 1 and self.head_location[1] == 1:
                 self.path_queue_index = (self.path_queue_index + 1) % len(self.path_queue)
                 self.path = self.path_queue[self.path_queue_index]
