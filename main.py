@@ -2,8 +2,14 @@ import Snake.snake as snake
 from AI.naive import Naive
 from AI.averaging import Averaging
 
-snake = snake.Snake()
+snake = snake.Snake(5, 5)
+snake.set_snake_movement_mode_by_input()
 # snake.set_max_speed()
-# naive = Naive(snake)
-averaging = Averaging(snake)
+snake.set_snake_move_limit_per_apple(True)
+agents = {
+    0: Naive(),
+    1: Averaging(),
+ }
+active_agent = agents[0]
+active_agent.activate(snake)
 snake.start()

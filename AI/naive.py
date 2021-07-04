@@ -10,6 +10,7 @@ class Naive(ai.Ai):
     input_right = 3
     path = None
     path_alts = None
+    path_queue = None
     path_queue_index = 0
     head_location = [-1, -1]
 

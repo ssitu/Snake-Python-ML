@@ -9,7 +9,7 @@ class Ai:
     def update(self):
         pass
 
-    def __init__(self, game):
+    def activate(self, game):
         self.game = game
         self.init_vars()
-        game.add_routine_update(self.update, [])
+        self.game.add_routine_update(self.update, [])

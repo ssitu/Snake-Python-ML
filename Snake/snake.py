@@ -41,7 +41,11 @@ class Snake(game.Game):
     _snake_status_hit_body = 2
     _snake_status_hit_edge = 3
     _snake_status_win = 4
+    _snake_status_move_limit_per_apple_reached = 5
     _snake_status = _snake_status_nothing
+    _snake_movement_mode_by_delay = 0
+    _snake_movement_mode_by_input = 1
+    _snake_movement_mode = _snake_movement_mode_by_delay
     # Key inputs
     _input_nothing = 0
     _input_up = 1
@@ -62,7 +66,7 @@ class Snake(game.Game):
         self._grid_height = grid_height + 2
         self._grid_visible_height = grid_height
         print("Grid Height:", grid_height, end=" | ")
-        self._grid_visible_area = grid_width * grid_height
+        self._snake_move_limit_per_apple = -1
         self._grid = [[0 for col in range(self._grid_width)] for row in range(self._grid_height)]
         self._pixels_unit_width = self._pixels_screen_size / grid_width
         self._pixels_unit_height = self._pixels_screen_size / grid_height
@@ -146,22 +150,38 @@ class Snake(game.Game):
         self._place_starting_snake()
         self._routine_apple_spawn()
 
-    def _is_win(self, next_head_location_row=None, next_head_location_col=None):
-        if next_head_location_row is None:  # For the times when the grid has empty positions
-            for row in range(1, self._grid_visible_height + 1):
-                for col in range(1, self._grid_visible_width + 1):
-                    if self._grid[row][col] == self._grid_cell_empty:
-                        return False
-            return True
-        else:  # For when the snake is about to eat an apple and there are no other spots to spawn another apple (Win)
-            for row in range(1, self._grid_visible_height + 1):
-                for col in range(1, self._grid_visible_width + 1):
-                    if self._grid[row][col] == self._grid_cell_empty or self._grid[self._snake_list[0][0]][self._snake_list[0][1]] == self._grid_cell_apple:
-                        return False
-            return True
+    # def _is_win(self, next_head_location_row=None, next_head_location_col=None):
+    #     if next_head_location_row is None:  # For the times when the grid has empty positions
+    #         for row in range(1, self._grid_visible_height + 1):
+    #             for col in range(1, self._grid_visible_width + 1):
+    #                 if self._grid[row][col] == self._grid_cell_empty:
+    #                     return False
+    #         return True
+    #     else:  # For when the snake is about to eat an apple and there are no other spots to spawn another apple (Win)
+    #         for row in range(1, self._grid_visible_height + 1):
+    #             for col in range(1, self._grid_visible_width + 1):
+    #                 if self._grid[row][col] == self._grid_cell_empty or self._grid[self._snake_list[0][0]][self._snake_list[0][1]] == self._grid_cell_apple:
+    #                     return False
+    #         return True
+
+    def _is_grid_full(self):
+        for row in range(1, self._grid_visible_height + 1):
+            for col in range(1, self._grid_visible_width + 1):
+                if self._grid[row][col] == self._grid_cell_empty:
+                    return False
+        return True
+
+    def _is_grid_full_by_snake(self):
+        for row in range(1, self._grid_visible_height + 1):
+            for col in range(1, self._grid_visible_width + 1):
+                cell = self._grid[row][col]
+                # Assuming that empty and apple cells are the only cells other than the snake body and head cells
+                if cell == self._grid_cell_empty or cell == self._grid_cell_apple:
+                    return False
+        return True
 
     def _routine_apple_spawn(self, next_head_location_row=None, next_head_location_col=None):
-        if not self._is_win(next_head_location_row, next_head_location_col):
+        if not self._is_grid_full():
             # Pick a random location on the visible part of the grid
             random_row = random.randint(1, self._grid_visible_height)
             random_col = random.randint(1, self._grid_visible_width)
@@ -170,6 +190,7 @@ class Snake(game.Game):
                 random_row = random.randint(1, self._grid_visible_height)
                 random_col = random.randint(1, self._grid_visible_width)
             self._set_cell_apple(random_row, random_col)
+            self._snake_move_count_per_apple = 0
 
     # Call after the new direction has been determined but before snake moves in the next determined location
     def _routine_apple_eaten(self, next_head_location_row, next_head_location_col):
@@ -254,7 +275,7 @@ class Snake(game.Game):
 
     # Call after snake has moved
     def _routine_win(self):
-        win = self._is_win()
+        win = self._is_grid_full_by_snake()
         if win:
             self._snake_status = self._snake_status_win
 
@@ -271,19 +292,34 @@ class Snake(game.Game):
             self._routine_snake_move(next_head_location_row, next_head_location_col)
             self._routine_win()
             self._time_since_last_movement_secs = 0
+            self._snake_move_count_per_apple += 1
+            if self._snake_move_count_per_apple > self._snake_move_limit_per_apple:
+                self._snake_status = self._snake_status_move_limit_per_apple_reached
+
+    def _routine_move_snake_by_input(self):
+        if self._events_key_down:
+            self._snake_direction = self._snake_direction_next
+            next_head_location_row = self._snake_list[0][0] + self._snake_direction[0]
+            next_head_location_col = self._snake_list[0][1] + self._snake_direction[1]
+            self._routine_collision_edges(next_head_location_row, next_head_location_col)
+            self._routine_collision_body(next_head_location_row, next_head_location_col)
+            self._routine_apple_eaten(next_head_location_row, next_head_location_col)
+            self._routine_snake_move(next_head_location_row, next_head_location_col)
+            self._routine_win()
+            self._time_since_last_movement_secs = 0
+            self._snake_move_count_per_apple += 1
+            if self._snake_move_count_per_apple > self._snake_move_limit_per_apple:
+                self._snake_status = self._snake_status_move_limit_per_apple_reached
 
     def start(self):
         self._routine_reset_game()
         while not self.game_quit:
             self.update()
-            if self._snake_status == self._snake_status_hit_edge:
+            if self.is_status_lose():
+                print("Lose!")
                 # Nice to see the head move off the screen to indicate collision with the edge
                 # Already does it with the extra two rows and columns and compensation in the fill_grid function,
                 # but it happens too fast to be able to see so sleep is needed before resetting the game
-                self._toggleable_sleep(self._time_movement_delay_secs * 2)
-                self._routine_reset_game()
-            if self._snake_status == self._snake_status_hit_body:
-                # Same process with the edge collision applies here
                 self._toggleable_sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             if self._snake_status == self._snake_status_win:
@@ -297,7 +333,10 @@ class Snake(game.Game):
             self._snake_status = self._snake_status_nothing
             self._routine_inputs_keys()
             self._routine_inputs()
-            self._routine_move_snake_by_delay()
+            if self._snake_movement_mode == self._snake_movement_mode_by_delay:
+                self._routine_move_snake_by_delay()
+            else:
+                self._routine_move_snake_by_input()
 
     def set_speed(self, speed_factor):
         self._time_movement_delay_secs /= max(0, speed_factor)
@@ -317,8 +356,11 @@ class Snake(game.Game):
     def is_status_win(self):
         return self._snake_status == self._snake_status_win
 
+    def is_status_move_limit_reached(self):
+        return self._snake_status == self._snake_status_move_limit_per_apple_reached
+
     def is_status_lose(self):
-        return self.is_status_hit_edge() or self.is_status_hit_body()
+        return self.is_status_hit_edge() or self.is_status_hit_body() or self.is_status_move_limit_reached()
 
     def set_input_up(self):
         self._input = self._input_up
@@ -340,3 +382,12 @@ class Snake(game.Game):
 
     def get_head_location(self):
         return self._snake_list[0].copy()
+
+    def set_snake_move_limit_per_apple(self, bool):
+        self._snake_move_limit_per_apple = self._grid_width * self._grid_height * 2
+
+    def set_snake_movement_mode_by_delay(self):
+        self._snake_movement_mode = self._snake_movement_mode_by_delay
+
+    def set_snake_movement_mode_by_input(self):
+        self._snake_movement_mode = self._snake_movement_mode_by_input
