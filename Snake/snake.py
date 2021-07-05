@@ -150,20 +150,6 @@ class Snake(game.Game):
         self._place_starting_snake()
         self._routine_apple_spawn()
 
-    # def _is_win(self, next_head_location_row=None, next_head_location_col=None):
-    #     if next_head_location_row is None:  # For the times when the grid has empty positions
-    #         for row in range(1, self._grid_visible_height + 1):
-    #             for col in range(1, self._grid_visible_width + 1):
-    #                 if self._grid[row][col] == self._grid_cell_empty:
-    #                     return False
-    #         return True
-    #     else:  # For when the snake is about to eat an apple and there are no other spots to spawn another apple (Win)
-    #         for row in range(1, self._grid_visible_height + 1):
-    #             for col in range(1, self._grid_visible_width + 1):
-    #                 if self._grid[row][col] == self._grid_cell_empty or self._grid[self._snake_list[0][0]][self._snake_list[0][1]] == self._grid_cell_apple:
-    #                     return False
-    #         return True
-
     def _is_grid_full(self):
         for row in range(1, self._grid_visible_height + 1):
             for col in range(1, self._grid_visible_width + 1):
@@ -200,10 +186,6 @@ class Snake(game.Game):
             # Add a body cell to the snake at the tail location
             tail_location = self._snake_list[-1]
             self._snake_list.append([tail_location[0], tail_location[1]])
-            # Weight for gradient effect to indicate the path of the body connections
-            weight = 1 / len(self._snake_list)
-            self._grid[tail_location[0]][tail_location[1]] = self._grid_cell_snake_body_range_size * weight \
-                + self._grid_cell_snake_body_range[0]
             # No other logic is needed:
             # the new head pixels replace the apple pixels
             # the new head cell value replaces the grid cell value for the apple
@@ -246,7 +228,8 @@ class Snake(game.Game):
             # Save the old location for the next body part
             cell_next = cell_current
         # Clear the tail, but only if it is the tail, in the case that the new head is where the tail was
-        if self._is_cell_snake_body(self._grid[cell_next[0]][cell_next[1]]):
+        # Special case when snake eats an apple, the new tail would be set as empty
+        if self._is_cell_snake_body(self._grid[cell_next[0]][cell_next[1]]) and self._snake_status != self._snake_status_eaten_apple:
             self._set_cell_empty(cell_next[0], cell_next[1])
 
     def _routine_inputs_keys(self):
