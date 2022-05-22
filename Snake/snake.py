@@ -1,4 +1,4 @@
-import Snake.game as game
+import snake.game as game
 import pygame
 import random
 import time
@@ -32,7 +32,7 @@ class Snake(game.Game):
     _direction_down = (1, 0)
     _direction_left = (0, -1)
     _direction_right = (0, 1)
-    # Snake related
+    # snake related
     _snake_list = []
     _snake_direction = _direction_right
     _snake_direction_next = _snake_direction
@@ -53,9 +53,10 @@ class Snake(game.Game):
     _state_hit_edge = 1 << 2
     _state_win = 1 << 3
     _state_move_limit_per_apple_reached = 1 << 4
+    _state_moved_previous_frame = 1 << 5
 
     def __init__(self, grid_width=17, grid_height=17, snake_pixels_border_percentage=1/6):
-        print("Snake initialization started.")
+        print("snake initialization started.")
         game.Game.__init__(self, self._pixels_screen_size, self._pixels_screen_size)
         self.game_screen.fill(self._color_empty)
         # Add two to the grid width and height to add a buffer around the grid to show end states
@@ -77,7 +78,7 @@ class Snake(game.Game):
         self._pixels_unit_center_height = self._pixels_unit_height * (1 - self._pixels_border_percentage)
         pygame.display.flip()
         self.set_speed(- 6 / ((grid_width * grid_height)) + 1)
-        print("\nSnake initialization finished.")
+        print("\nsnake initialization finished.")
 
     def _print_grid(self):
         print()
@@ -205,7 +206,7 @@ class Snake(game.Game):
         will_collide_body = False
         try:
             will_collide_body = self._is_cell_snake_body(self._grid[next_head_location_row][next_head_location_col])
-        except IndexError as error:
+        except IndexError:
             print(next_head_location_row, next_head_location_col)
             print(self._states)
             self._print_grid()
@@ -237,16 +238,17 @@ class Snake(game.Game):
         # Special case when snake eats an apple, the new tail would be set as empty
         if self._is_cell_snake_body(self._grid[cell_next[0]][cell_next[1]]) and not self.is_state_eaten_apple():
             self._set_cell_empty(cell_next[0], cell_next[1])
+        self._states = self._states | self._state_moved_previous_frame
 
     def _routine_inputs_keys(self):
         if self._events_key_down:
-            if self._events_key_down[-1].unicode == "w":
+            if self._events_key_down[-1].key in (pygame.K_w, pygame.K_UP):
                 self._input = self._input_up
-            elif self._events_key_down[-1].unicode == "a":
+            elif self._events_key_down[-1].key in (pygame.K_a, pygame.K_LEFT):
                 self._input = self._input_left
-            elif self._events_key_down[-1].unicode == "s":
+            elif self._events_key_down[-1].key in (pygame.K_s, pygame.K_DOWN):
                 self._input = self._input_down
-            elif self._events_key_down[-1].unicode == "d":
+            elif self._events_key_down[-1].key in (pygame.K_d, pygame.K_RIGHT):
                 self._input = self._input_right
 
     def _routine_inputs(self):
@@ -305,7 +307,6 @@ class Snake(game.Game):
         while not self.game_quit:
             self.update()
             if self.is_state_lose():
-                print("Lose!")
                 # Nice to see the head move off the screen to indicate collision with the edge
                 # Already does it with the extra two rows and columns and compensation in the fill_grid function,
                 # but it happens too fast to be able to see so sleep is needed before resetting the game
@@ -350,6 +351,9 @@ class Snake(game.Game):
 
     def is_state_lose(self):
         return self.is_state_hit_body() or self.is_state_hit_edge() or self.is_state_move_limit_reached()
+
+    def is_state_moved_previous_frame(self):
+        return self._states & self._state_moved_previous_frame == self._state_moved_previous_frame
 
     def set_input_up(self):
         self._input = self._input_up

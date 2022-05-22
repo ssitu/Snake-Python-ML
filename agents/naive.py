@@ -1,8 +1,7 @@
-import Snake.snake
-import AI.ai as ai
+import agents.agent as ai
 
 
-class Naive(ai.Ai):
+class Naive(ai.Agent):
 
     input_up = 0
     input_left = 1
@@ -179,10 +178,8 @@ class Naive(ai.Ai):
             self.print_matrix(self.path_queue[1])
 
     def update(self):
-        current_head_location = self.game.get_head_location()
-        # Check if the snake has moved to avoid making repetitive decisions
-        if self.head_location != current_head_location:
-            self.head_location = current_head_location
+        if self.game.is_state_moved_previous_frame():
+            self.head_location = self.game.get_head_location()
             # Start of algorithm
             # Switch path when at grid location (1, 1)
             if self.path_queue is not None and self.head_location[0] == 1 and self.head_location[1] == 1:
@@ -195,5 +192,5 @@ class Naive(ai.Ai):
                 self.game.set_input_left()
             elif instruction == self.input_down:
                 self.game.set_input_down()
-            elif instruction == self.input_right:
+            else:
                 self.game.set_input_right()

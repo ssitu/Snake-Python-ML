@@ -1,4 +1,4 @@
-class Ai:
+class Agent:
     game = None
 
     # To be implemented in inheriting classes
