@@ -18,6 +18,7 @@ class Game:
         self.set_fps(60)
         self._update_game_events()
         self._external_routines_update = {}
+        self._external_routines_reset = {}
         self._external_routines_quit = {}
         self._external_routines_key_down = {}
         self._external_routines_key_up = {}
@@ -29,6 +30,9 @@ class Game:
 
     def add_routine_update(self, routine, parameters):
         self._external_routines_update[routine] = parameters
+
+    def add_routine_reset(self, routine, parameters):
+        self._external_routines_reset[routine] = parameters
 
     def add_routine_quit(self, routine, parameters):
         self._external_routines_quit[routine] = parameters
@@ -50,6 +54,9 @@ class Game:
 
     def _routine_update(self):
         self._call_dict_routines(self._external_routines_update)
+
+    def _routine_reset(self):
+        self._call_dict_routines(self._external_routines_reset)
 
     def _routine_quit(self):
         self.game_quit = True

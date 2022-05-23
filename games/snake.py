@@ -79,6 +79,7 @@ class Snake(game.Game):
         self._pixels_unit_center_height = self._pixels_unit_height * (1 - self._pixels_border_percentage)
         pygame.display.flip()
         self.set_speed(- 6 / (grid_width * grid_height) + 1)
+        self.games_played = -1  # Is added to after a reset, -1 to leave out the first reset
         print("\ngames initialization finished.")
 
     def _print_grid(self):
@@ -145,11 +146,13 @@ class Snake(game.Game):
         self._snake_list = []
         self._snake_direction = self._direction_right
         self._snake_direction_next = self._snake_direction
-        self._grid = [[0 for col in range(self._grid_width)] for row in range(self._grid_height)]
+        self._grid = [[0 for _ in range(self._grid_width)] for _ in range(self._grid_height)]
         background_rectangle = pygame.Rect(0, 0, self._pixels_screen_size, self._pixels_screen_size)
         pygame.draw.rect(self.game_screen, self._color_empty, background_rectangle)
         self._place_starting_snake()
         self._routine_apple_spawn()
+        self._routine_reset()  # Call external reset functions
+        self.games_played += 1
 
     def _is_grid_full(self):
         for row in range(1, self._grid_visible_height + 1):
@@ -294,9 +297,9 @@ class Snake(game.Game):
         if self._snake_move_count_per_apple > self._snake_move_limit_per_apple > 0:
             self._states = self._states | self._state_move_limit_per_apple_reached
 
-    def start(self):
+    def start(self, games_to_play=-1):
         self._routine_reset_game()
-        while not self.game_quit:
+        while not self.game_quit and (games_to_play > self.games_played or games_to_play == -1):
             self.update()
             if self.is_state_lose():
                 # Nice to see the head move off the screen to indicate collision with the edge
@@ -306,6 +309,7 @@ class Snake(game.Game):
                 self._routine_reset_game()
             if self.is_state_win():
                 print("Win!")
+                # Fill each cell with the color of the snake head to indicate a win
                 for row in range(1, self._grid_visible_height + 1):
                     for col in range(1, self._grid_visible_width + 1):
                         self._set_grid_fill(row, col, self._color_snake_head)
@@ -321,7 +325,7 @@ class Snake(game.Game):
                 self._routine_move_snake_by_input()
 
     def set_speed(self, speed_factor):
-        self._time_movement_delay_secs /= max(0, speed_factor)
+        self._time_movement_delay_secs /= max(.2, speed_factor)
 
     def get_length(self):
         return len(self._snake_list)

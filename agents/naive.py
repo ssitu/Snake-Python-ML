@@ -177,9 +177,6 @@ class Naive(SnakeAgent):
             print("Path 2:")
             self.print_matrix(self.path_queue[1])
 
-        # Start moving up to prevent getting stuck moving right on a left moving path
-        self.snake_game.set_input_up()
-
     def step(self):
         super().step()
         self.head_location = self.snake_game.get_head_location()
@@ -200,5 +197,8 @@ class Naive(SnakeAgent):
 
     def end_of_episode(self):
         super().end_of_episode()
-        self.snake_game.set_input_up()  # Start off moving up,
-        # snake can get stuck moving right until hitting the edge on the path where it should be moving left
+        # Nothing to do
+
+    def reset(self):
+        self.snake_game.set_input_down()  # Start off moving vertically,
+        # the snake can get stuck moving right until hitting the edge on the path where it should be moving left
