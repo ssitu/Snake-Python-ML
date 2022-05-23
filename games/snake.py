@@ -274,33 +274,25 @@ class Snake(game.Game):
         # Movement with set delay
         self._time_since_last_movement_secs += self._game_frame_delay
         if self._time_since_last_movement_secs > self._time_movement_delay_secs or self._time_no_sleep:
-            self._snake_direction = self._snake_direction_next
-            next_head_location_row = self._snake_list[0][0] + self._snake_direction[0]
-            next_head_location_col = self._snake_list[0][1] + self._snake_direction[1]
-            self._routine_collision_edges(next_head_location_row, next_head_location_col)
-            self._routine_collision_body(next_head_location_row, next_head_location_col)
-            self._routine_apple_eaten(next_head_location_row, next_head_location_col)
-            self._routine_snake_move(next_head_location_row, next_head_location_col)
-            self._routine_win()
-            self._time_since_last_movement_secs = 0
-            self._snake_move_count_per_apple += 1
-            if self._snake_move_count_per_apple > self._snake_move_limit_per_apple > 0:
-                self._states = self._states | self._state_move_limit_per_apple_reached
+            self._routine_next_frame()
 
     def _routine_move_snake_by_input(self):
         if self._events_key_down:
-            self._snake_direction = self._snake_direction_next
-            next_head_location_row = self._snake_list[0][0] + self._snake_direction[0]
-            next_head_location_col = self._snake_list[0][1] + self._snake_direction[1]
-            self._routine_collision_edges(next_head_location_row, next_head_location_col)
-            self._routine_collision_body(next_head_location_row, next_head_location_col)
-            self._routine_apple_eaten(next_head_location_row, next_head_location_col)
-            self._routine_snake_move(next_head_location_row, next_head_location_col)
-            self._routine_win()
-            self._time_since_last_movement_secs = 0
-            self._snake_move_count_per_apple += 1
-            if self._snake_move_count_per_apple > self._snake_move_limit_per_apple:
-                self._states = self._states | self._state_move_limit_per_apple_reached
+            self._routine_next_frame()
+
+    def _routine_next_frame(self):
+        self._snake_direction = self._snake_direction_next
+        next_head_location_row = self._snake_list[0][0] + self._snake_direction[0]
+        next_head_location_col = self._snake_list[0][1] + self._snake_direction[1]
+        self._routine_collision_edges(next_head_location_row, next_head_location_col)
+        self._routine_collision_body(next_head_location_row, next_head_location_col)
+        self._routine_apple_eaten(next_head_location_row, next_head_location_col)
+        self._routine_snake_move(next_head_location_row, next_head_location_col)
+        self._routine_win()
+        self._time_since_last_movement_secs = 0
+        self._snake_move_count_per_apple += 1
+        if self._snake_move_count_per_apple > self._snake_move_limit_per_apple > 0:
+            self._states = self._states | self._state_move_limit_per_apple_reached
 
     def start(self):
         self._routine_reset_game()
