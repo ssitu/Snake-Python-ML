@@ -1,8 +1,8 @@
-import agents.agent as ai
+from agents.snake_agent import SnakeAgent
+from games.snake import Snake
 
 
-class Naive(ai.Agent):
-
+class Naive(SnakeAgent):
     input_up = 0
     input_left = 1
     input_down = 2
@@ -14,7 +14,7 @@ class Naive(ai.Agent):
     head_location = [-1, -1]
 
     def path_even_rows(self, grid_rows, grid_cols):
-        path = [[0 for col in range(0, grid_cols)] for row in range(0, grid_rows)]
+        path = [[0 for _ in range(0, grid_cols)] for _ in range(0, grid_rows)]
         # Straightaway but right at the top
         path[1][1] = self.input_right
         for row in range(2, grid_rows - 1):
@@ -36,7 +36,7 @@ class Naive(ai.Agent):
         return path
 
     def path_even_cols(self, grid_rows, grid_cols):
-        path = [[0 for col in range(0, grid_cols)] for row in range(0, grid_rows)]
+        path = [[0 for _ in range(0, grid_cols)] for _ in range(0, grid_rows)]
         # Straightaway but right at the top
         path[1][1] = self.input_down
         for row in range(2, grid_cols - 1):
@@ -58,7 +58,7 @@ class Naive(ai.Agent):
         return path
 
     def path_odd_1(self, grid_rows, grid_cols):
-        path = [[0 for col in range(0, grid_cols)] for row in range(0, grid_rows)]
+        path = [[0 for _ in range(0, grid_cols)] for _ in range(0, grid_rows)]
         # Left Straightaway up to the first row
         for row in range(2, grid_rows - 1):
             path[row][1] = self.input_up
@@ -105,7 +105,7 @@ class Naive(ai.Agent):
         return path
 
     def path_odd_2(self, grid_rows, grid_cols):
-        path = [[0 for col in range(0, grid_cols)] for row in range(0, grid_rows)]
+        path = [[0 for _ in range(0, grid_cols)] for _ in range(0, grid_rows)]
         # Left Straightaway up to the first row
         for row in range(2, grid_rows - 1):
             path[row][1] = self.input_up
@@ -147,15 +147,15 @@ class Naive(ai.Agent):
 
     @staticmethod
     def print_matrix(matrix):
-        print()
         for row in matrix:
             for col in row:
                 print(col, end=" ")
             print()
 
-    def init_vars(self):
-        grid_rows = self.game._grid_height
-        grid_cols = self.game._grid_width
+    def __init__(self, env: Snake):
+        super().__init__(env)
+        grid_rows = self.snake_game.get_grid_height()
+        grid_cols = self.snake_game.get_grid_width()
         # Layout the Hamiltonian path
         # Even rows
         if grid_rows % 2 == 0:
@@ -177,20 +177,28 @@ class Naive(ai.Agent):
             print("Path 2:")
             self.print_matrix(self.path_queue[1])
 
-    def update(self):
-        if self.game.is_state_moved_previous_frame():
-            self.head_location = self.game.get_head_location()
-            # Start of algorithm
-            # Switch path when at grid location (1, 1)
-            if self.path_queue is not None and self.head_location[0] == 1 and self.head_location[1] == 1:
-                self.path_queue_index = (self.path_queue_index + 1) % len(self.path_queue)
-                self.path = self.path_queue[self.path_queue_index]
-            instruction = self.path[self.head_location[0]][self.head_location[1]]
-            if instruction == self.input_up:
-                self.game.set_input_up()
-            elif instruction == self.input_left:
-                self.game.set_input_left()
-            elif instruction == self.input_down:
-                self.game.set_input_down()
-            else:
-                self.game.set_input_right()
+        # Start moving up to prevent getting stuck moving right on a left moving path
+        self.snake_game.set_input_up()
+
+    def step(self):
+        super().step()
+        self.head_location = self.snake_game.get_head_location()
+        # Start of algorithm
+        # Switch path when at grid location (1, 1)
+        if self.path_queue is not None and self.head_location[0] == 1 and self.head_location[1] == 1:
+            self.path_queue_index = (self.path_queue_index + 1) % len(self.path_queue)
+            self.path = self.path_queue[self.path_queue_index]
+        instruction = self.path[self.head_location[0]][self.head_location[1]]
+        if instruction == self.input_up:
+            self.snake_game.set_input_up()
+        elif instruction == self.input_left:
+            self.snake_game.set_input_left()
+        elif instruction == self.input_down:
+            self.snake_game.set_input_down()
+        else:
+            self.snake_game.set_input_right()
+
+    def end_of_episode(self):
+        super().end_of_episode()
+        self.snake_game.set_input_up()  # Start off moving up,
+        # snake can get stuck moving right until hitting the edge on the path where it should be moving left

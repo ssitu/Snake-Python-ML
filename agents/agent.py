@@ -1,15 +1,12 @@
+from games.game import Game
+
+
 class Agent:
-    game = None
 
-    # To be implemented in inheriting classes
-    def init_vars(self):
-        pass
+    def __init__(self, env: Game):
+        self.env = env
+        self.env.add_routine_update(self.update, [])
 
-    # To be implemented in inheriting classes
     def update(self):
         pass
 
-    def activate(self, game):
-        self.game = game
-        self.init_vars()
-        self.game.add_routine_update(self.update, [])

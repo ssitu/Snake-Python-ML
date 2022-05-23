@@ -1,8 +1,9 @@
-import snake.game as game
-import pygame
-import random
-import time
 import math
+import random
+
+import pygame
+
+import games.game as game
 
 
 class Snake(game.Game):
@@ -27,12 +28,12 @@ class Snake(game.Game):
     _grid_cell_snake_body_range_size = _grid_cell_snake_body_range[1] - _grid_cell_snake_body_range[0]
     _grid_cell_snake_head = 2
     _grid_cell_apple = 3
-    # Directions for the snake to move in
+    # Directions for the games to move in
     _direction_up = (-1, 0)
     _direction_down = (1, 0)
     _direction_left = (0, -1)
     _direction_right = (0, 1)
-    # snake related
+    # games related
     _snake_list = []
     _snake_direction = _direction_right
     _snake_direction_next = _snake_direction
@@ -55,8 +56,8 @@ class Snake(game.Game):
     _state_move_limit_per_apple_reached = 1 << 4
     _state_moved_previous_frame = 1 << 5
 
-    def __init__(self, grid_width=17, grid_height=17, snake_pixels_border_percentage=1/6):
-        print("snake initialization started.")
+    def __init__(self, grid_width=17, grid_height=17, snake_pixels_border_percentage=1 / 6):
+        print("games initialization started.")
         game.Game.__init__(self, self._pixels_screen_size, self._pixels_screen_size)
         self.game_screen.fill(self._color_empty)
         # Add two to the grid width and height to add a buffer around the grid to show end states
@@ -77,8 +78,8 @@ class Snake(game.Game):
         self._pixels_unit_center_width = self._pixels_unit_width * (1 - self._pixels_border_percentage)
         self._pixels_unit_center_height = self._pixels_unit_height * (1 - self._pixels_border_percentage)
         pygame.display.flip()
-        self.set_speed(- 6 / ((grid_width * grid_height)) + 1)
-        print("\nsnake initialization finished.")
+        self.set_speed(- 6 / (grid_width * grid_height) + 1)
+        print("\ngames initialization finished.")
 
     def _print_grid(self):
         print()
@@ -89,8 +90,8 @@ class Snake(game.Game):
 
     def _set_grid_fill(self, row, col, pygame_color):
         # Must subtract one to the coordinates due to the hidden border around the outside of the game window
-        start_x = (col-1) * self._pixels_unit_width
-        start_y = (row-1) * self._pixels_unit_height
+        start_x = (col - 1) * self._pixels_unit_width
+        start_y = (row - 1) * self._pixels_unit_height
         center_x = start_x + self._pixels_border_offset_x
         center_y = start_y + self._pixels_border_offset_y
         rectangle = pygame.Rect(center_x, center_y, self._pixels_unit_center_width, self._pixels_unit_center_height)
@@ -111,15 +112,14 @@ class Snake(game.Game):
     def _blend_colors(blend_weight, rgb_base, rgb_to_blend):
         blended = []
         for i in range(3):
-            blended.append(math.ceil((blend_weight*rgb_base[i] + (1-blend_weight)*rgb_to_blend[i])))
+            blended.append(math.ceil((blend_weight * rgb_base[i] + (1 - blend_weight) * rgb_to_blend[i])))
         return blended
 
     def _is_cell_snake_body(self, grid_cell_value):
-        return grid_cell_value > self._grid_cell_snake_body_range[0] and \
-               grid_cell_value < self._grid_cell_snake_body_range[1]
+        return self._grid_cell_snake_body_range[0] < grid_cell_value < self._grid_cell_snake_body_range[1]
 
     def _set_cell_snake_body(self, row, col, body_index):
-        weight = 1 - body_index / len(self._snake_list) * (2/3)
+        weight = 1 - body_index / len(self._snake_list) * (2 / 3)
         # The last fraction is the portion of the upper side of the interval [0, 1] to use
         self._grid[row][col] = self._grid_cell_snake_body_range_size * weight + self._grid_cell_snake_body_range[0]
         blended_body_color = pygame.Color(self._blend_colors(weight, self._color_snake_body_rgb, self._color_empty_rgb))
@@ -134,12 +134,12 @@ class Snake(game.Game):
         start_col = int(self._grid_width / 2)
         self._set_cell_snake_head(start_row, start_col)
         self._snake_list.append([start_row, start_col])
-        self._set_cell_snake_body(start_row, start_col-1, 0)
-        self._snake_list.append([start_row, start_col-1])
-        self._set_cell_snake_body(start_row, start_col-2, 1)
-        self._snake_list.append([start_row, start_col-2])
-        self._set_cell_snake_body(start_row, start_col-3, 2)
-        self._snake_list.append([start_row, start_col-3])
+        self._set_cell_snake_body(start_row, start_col - 1, 0)
+        self._snake_list.append([start_row, start_col - 1])
+        self._set_cell_snake_body(start_row, start_col - 2, 1)
+        self._snake_list.append([start_row, start_col - 2])
+        self._set_cell_snake_body(start_row, start_col - 3, 2)
+        self._snake_list.append([start_row, start_col - 3])
 
     def _routine_reset_game(self):
         self._snake_list = []
@@ -162,7 +162,7 @@ class Snake(game.Game):
         for row in range(1, self._grid_visible_height + 1):
             for col in range(1, self._grid_visible_width + 1):
                 cell = self._grid[row][col]
-                # Assuming that empty and apple cells are the only cells other than the snake body and head cells
+                # Assuming that empty and apple cells are the only cells other than the games body and head cells
                 if cell == self._grid_cell_empty or cell == self._grid_cell_apple:
                     return False
         return True
@@ -179,12 +179,12 @@ class Snake(game.Game):
             self._set_cell_apple(random_row, random_col)
             self._snake_move_count_per_apple = 0
 
-    # Call after the new direction has been determined but before snake moves in the next determined location
+    # Call after the new direction has been determined but before games moves in the next determined location
     def _routine_apple_eaten(self, next_head_location_row, next_head_location_col):
         will_eat_apple = self._grid[next_head_location_row][next_head_location_col] == self._grid_cell_apple
         if will_eat_apple:
             self._states = self._states | self._state_eaten_apple
-            # Add a body cell to the snake at the tail location
+            # Add a body cell to the games at the tail location
             tail_location = self._snake_list[-1]
             self._snake_list.append([tail_location[0], tail_location[1]])
             # No other logic is needed:
@@ -192,7 +192,7 @@ class Snake(game.Game):
             # the new head cell value replaces the grid cell value for the apple
             self._routine_apple_spawn(next_head_location_row, next_head_location_col)
 
-    # Call after the new direction has been determined but before snake moves in the next determined location
+    # Call after the new direction has been determined but before games moves in the next determined location
     def _routine_collision_edges(self, next_head_location_row, next_head_location_col):
         # Must compensate for the grid's extra row and column
         will_collide_horizontal_edges = next_head_location_row > self._grid_visible_height or next_head_location_row < 1
@@ -201,7 +201,7 @@ class Snake(game.Game):
         if will_collide_edge:
             self._states = self._states | self._state_hit_edge
 
-    # Call after the new direction has been determined but before snake moves in the next determined location
+    # Call after the new direction has been determined but before games moves in the next determined location
     def _routine_collision_body(self, next_head_location_row, next_head_location_col):
         will_collide_body = False
         try:
@@ -235,7 +235,7 @@ class Snake(game.Game):
             # Save the old location for the next body part
             cell_next = cell_current
         # Clear the tail, but only if it is the tail, in the case that the new head is where the tail was
-        # Special case when snake eats an apple, the new tail would be set as empty
+        # Special case when games eats an apple, the new tail would be set as empty
         if self._is_cell_snake_body(self._grid[cell_next[0]][cell_next[1]]) and not self.is_state_eaten_apple():
             self._set_cell_empty(cell_next[0], cell_next[1])
         self._states = self._states | self._state_moved_previous_frame
@@ -261,10 +261,10 @@ class Snake(game.Game):
             direction = self._direction_down
         if self._input == self._input_right:
             direction = self._direction_right
-        if direction is not None and self._snake_direction != (direction[0]*-1, direction[1]*-1):
+        if direction is not None and self._snake_direction != (direction[0] * -1, direction[1] * -1):
             self._snake_direction_next = direction
 
-    # Call after snake has moved
+    # Call after games has moved
     def _routine_win(self):
         win = self._is_grid_full_by_snake()
         if win:
@@ -284,7 +284,7 @@ class Snake(game.Game):
             self._routine_win()
             self._time_since_last_movement_secs = 0
             self._snake_move_count_per_apple += 1
-            if self._snake_move_count_per_apple > self._snake_move_limit_per_apple:
+            if self._snake_move_count_per_apple > self._snake_move_limit_per_apple > 0:
                 self._states = self._states | self._state_move_limit_per_apple_reached
 
     def _routine_move_snake_by_input(self):
@@ -376,11 +376,28 @@ class Snake(game.Game):
     def get_head_location(self):
         return self._snake_list[0].copy()
 
-    def set_snake_move_limit_per_apple(self, bool):
-        self._snake_move_limit_per_apple = self._grid_width * self._grid_height * 2
+    def set_snake_move_limit_per_apple(self, on: bool = True):
+        """
+        If True is given, then the maximum number of moves that
+        can be made by the snake will be twice the area of the grid.
+        If False is given, then there is no maximum number of moves
+        :param on:
+        :return:
+        """
+        if on:
+            self._snake_move_limit_per_apple = self._grid_width * self._grid_height * 2
+        else:
+            self._snake_move_limit_per_apple = -1
 
     def set_snake_movement_mode_by_delay(self):
         self._snake_movement_mode = self._snake_movement_mode_by_delay
 
     def set_snake_movement_mode_by_input(self):
         self._snake_movement_mode = self._snake_movement_mode_by_input
+
+    def get_grid_height(self):
+        return self._grid_height
+
+    def get_grid_width(self):
+        return self._grid_width
+
