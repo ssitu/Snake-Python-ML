@@ -11,7 +11,8 @@ class Game:
     def set_fps(self, fps):
         self._game_frame_delay = 1 / fps
 
-    def __init__(self, width, height):
+    def __init__(self, width, height, render=True):
+        self.render = render
         pygame.init()
         self.game_screen = pygame.display.set_mode(size=(width, height))
         self.game_quit = False
@@ -77,5 +78,6 @@ class Game:
             self._routine_key_down()
         if self._events_key_up:
             self._routine_key_up()
-        pygame.display.flip()
+        if self.render:
+            pygame.display.flip()
         self._toggleable_sleep(self._game_frame_delay)

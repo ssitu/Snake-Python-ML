@@ -26,8 +26,8 @@ class Snake(game.Game):
     _grid_cell_empty = 0
     _grid_cell_snake_body_range = (0, 1)
     _grid_cell_snake_body_range_size = _grid_cell_snake_body_range[1] - _grid_cell_snake_body_range[0]
-    _grid_cell_snake_head = 2
-    _grid_cell_apple = 3
+    _grid_cell_snake_head = 5
+    _grid_cell_apple = 10
     # Directions for the games to move in
     _direction_up = (-1, 0)
     _direction_down = (1, 0)
@@ -56,18 +56,17 @@ class Snake(game.Game):
     _state_move_limit_per_apple_reached = 1 << 4
     _state_moved_previous_frame = 1 << 5
 
-    def __init__(self, grid_width=17, grid_height=17, snake_pixels_border_percentage=1 / 6):
-        print("games initialization started.")
-        game.Game.__init__(self, self._pixels_screen_size, self._pixels_screen_size)
+    def __init__(self, grid_width=17, grid_height=17, snake_pixels_border_percentage=1 / 6, render=True):
+        print("Snake initialization started.")
+        game.Game.__init__(self, self._pixels_screen_size, self._pixels_screen_size, render)
         self.game_screen.fill(self._color_empty)
         # Add two to the grid width and height to add a buffer around the grid to show end states
         # when the head moves out of bounds
         self._grid_width = grid_width + 2
         self._grid_visible_width = grid_width
-        print("Grid Width:", grid_width, end=" | ")
         self._grid_height = grid_height + 2
         self._grid_visible_height = grid_height
-        print("Grid Height:", grid_height, end=" | ")
+        print(f"Grid Width: {grid_width}, Grid Height: {grid_height}")
         self._snake_move_limit_per_apple = -1
         self._grid = [[0 for col in range(self._grid_width)] for row in range(self._grid_height)]
         self._pixels_unit_width = self._pixels_screen_size / grid_width
@@ -77,10 +76,11 @@ class Snake(game.Game):
         self._pixels_border_offset_y = self._pixels_unit_height * self._pixels_border_percentage / 2
         self._pixels_unit_center_width = self._pixels_unit_width * (1 - self._pixels_border_percentage)
         self._pixels_unit_center_height = self._pixels_unit_height * (1 - self._pixels_border_percentage)
-        pygame.display.flip()
+        if self.render:
+            pygame.display.flip()
         self.set_speed(- 6 / (grid_width * grid_height) + 1)
         self.games_played = -1  # Is added to after a reset, -1 to leave out the first reset
-        print("\ngames initialization finished.")
+        print("Snake initialization finished.")
 
     def _print_grid(self):
         print()
@@ -96,7 +96,8 @@ class Snake(game.Game):
         center_x = start_x + self._pixels_border_offset_x
         center_y = start_y + self._pixels_border_offset_y
         rectangle = pygame.Rect(center_x, center_y, self._pixels_unit_center_width, self._pixels_unit_center_height)
-        pygame.draw.rect(self.game_screen, pygame_color, rectangle)
+        if self.render:
+            pygame.draw.rect(self.game_screen, pygame_color, rectangle)
 
     def _set_cell_empty(self, row, col):
         self._grid[row][col] = self._grid_cell_empty
@@ -313,7 +314,8 @@ class Snake(game.Game):
                 for row in range(1, self._grid_visible_height + 1):
                     for col in range(1, self._grid_visible_width + 1):
                         self._set_grid_fill(row, col, self._color_snake_head)
-                pygame.display.flip()
+                if self.render:
+                    pygame.display.flip()
                 self._toggleable_sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             self._states = 0
@@ -397,3 +399,8 @@ class Snake(game.Game):
     def get_grid_width(self):
         return self._grid_width
 
+    def set_render(self, render: bool):
+        self.render = render
+
+    def get_games_played(self):
+        return self.games_played
