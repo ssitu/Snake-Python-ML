@@ -89,9 +89,12 @@ class AgentPyTorch(SnakeAgent):
         super().__init__(snake_game)
         device_setup()
         self.agent_name = agent_name
-        observation_space = 1, self.snake_game.get_grid_height(), self.snake_game.get_grid_width()
+        observation_space = 1, 1, self.snake_game.get_grid_height(), self.snake_game.get_grid_width()
         self.actor = self.construct_actor(observation_space, 4)
         summary(self.actor, observation_space)
+        self.rewards_sum = 0
+        self.best_reward = 0
+        self.average_rewards = 0
 
     def construct_actor(self, obs_space, action_space) -> torch.nn.Sequential:
         raise NotImplementedError
@@ -100,7 +103,7 @@ class AgentPyTorch(SnakeAgent):
         raise NotImplementedError
 
     def get_action(self, observation: numpy.ndarray, training=True) -> int:
-        state = torch.tensor(observation, dtype=torch.float)
+        state = torch.tensor(observation, dtype=torch.float).unsqueeze(0)
         # Sample action
         probabilities = self.actor(state)
         dist = torch.distributions.Categorical(probs=probabilities)
@@ -128,20 +131,38 @@ class AgentPyTorch(SnakeAgent):
         super().step()
         # Get the reward for taking the previous action and transition into this new state,
         # pass the new state, get a new action
-        self.give_reward(self.get_reward())
+        reward = self.get_reward()
+        self.give_reward(reward)
+        self.rewards_sum += reward
         observation = self.get_observation()
         self.take_action(self.get_action(observation, self.training))
 
     def end_of_episode(self):
         super().end_of_episode()
         # Obtain the reward for the last action made
-        self.give_reward(self.get_reward())
+        reward = self.get_reward()
+        self.give_reward(reward)
+        self.rewards_sum += reward
         if self.training:
             self.train_agent()
         self.reset_agent()
+
+        # Statistics
+        if self.plotting:
+            self.rewards_plot.plot_data(self.rewards_sum)
+        if self.rewards_sum > self.best_reward:
+            self.best_reward = self.rewards_sum
+            print(f"New highest rewards collected in one game: {self.best_reward}")
+        games_played = self.snake_game.get_games_played()
+        self.average_rewards = (self.average_rewards * games_played + self.rewards_sum) / (games_played + 1)
+        self.rewards_sum = 0
+
+        # Periodic Saving
         if (self.snake_game.get_games_played() + 1) % EPISODES_BETWEEN_SAVES == 0:
             self.save()
             print("Progress Saved")
+            print(f"Average reward so far: {self.average_rewards}")
+
 
     def save(self):
         """

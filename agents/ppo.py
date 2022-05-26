@@ -1,5 +1,4 @@
 import torch
-
 # Constants
 from torchinfo import summary
 
@@ -14,6 +13,9 @@ EPSILON = .1
 TRAININGS_PER_EPISODE = 5
 ENTROPY_WEIGHT = .1
 
+# To prevent NANs
+SMALL_CONSTANT = .00001
+
 
 class AgentPPO(AgentPyTorch):
 
@@ -26,20 +28,22 @@ class AgentPPO(AgentPyTorch):
         self.states = []
         self.actions = []
         self.rewards = []
-        summary(self.critic, (1, self.snake_game.get_grid_height(), self.snake_game.get_grid_width()))
-        self.best_reward = 0
-        self.rewards_sum = 0
+        summary(self.critic, (1, 1, self.snake_game.get_grid_height(), self.snake_game.get_grid_width()))
 
     def construct_actor(self, obs_space, action_space) -> torch.nn.Sequential:
         return torch.nn.Sequential(
-            # torch.nn.LazyConv2d(15, 3),
-            # torch.nn.LazyConv2d(1, 3),
+            torch.nn.LazyConv2d(50, 10),
+            torch.nn.LeakyReLU(),
+            torch.nn.MaxPool2d(3, stride=2, padding=1),
+            torch.nn.LazyConv2d(30, 3, padding=1),
+            torch.nn.LeakyReLU(),
+            torch.nn.MaxPool2d(2, padding=1),
             torch.nn.Flatten(),
-            torch.nn.LazyLinear(100),
+            torch.nn.LazyLinear(50),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(100),
+            torch.nn.LazyLinear(30),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(100),
+            torch.nn.LazyLinear(10),
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(action_space),
             torch.nn.Softmax(dim=-1)
@@ -47,8 +51,12 @@ class AgentPPO(AgentPyTorch):
 
     def construct_critic(self) -> torch.nn.Sequential:
         return torch.nn.Sequential(
-            # torch.nn.LazyConv2d(15, 3),
-            # torch.nn.LazyConv2d(1, 3),
+            torch.nn.LazyConv2d(50, 10),
+            torch.nn.LeakyReLU(),
+            torch.nn.MaxPool2d(3, stride=2, padding=1),
+            torch.nn.LazyConv2d(30, 3, padding=1),
+            torch.nn.LeakyReLU(),
+            torch.nn.MaxPool2d(2, padding=1),
             torch.nn.Flatten(),
             torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
@@ -66,10 +74,9 @@ class AgentPPO(AgentPyTorch):
     def give_reward(self, reward: float):
         super().give_reward(reward)
         self.rewards.append(reward)
-        self.rewards_sum += reward
 
     def train_agent(self):
-        states_batch = torch.stack(self.states).detach()
+        states_batch = torch.cat(self.states, 0).detach()
         old_probabilities = self.actor(states_batch)
         # Isolate the probabilities of the performed actions under the new policy
         # And, detach since it is used as a constant, not for training
@@ -94,7 +101,8 @@ class AgentPPO(AgentPyTorch):
             advantages = advantages.detach()  # Prevent the loss_clip from affecting the gradients of the critic
 
             # Entropy
-            entropy = ENTROPY_WEIGHT * -(new_probabilities * torch.log(new_probabilities)).sum(dim=1)
+            entropy = ENTROPY_WEIGHT * - \
+                (new_probabilities * torch.log(torch.add(new_probabilities, SMALL_CONSTANT))).sum(dim=1)
 
             # Losses, L_clip, L_critic, L_entropy
             objective_clip = torch.min(ratios * advantages, clipped_ratios * advantages).mean()
@@ -108,22 +116,16 @@ class AgentPPO(AgentPyTorch):
             self.actor_optimizer.step()
             self.critic_optimizer.step()
 
-    def save(self):
-        self.save_model(self.actor, self.actor_optimizer)
-        self.save_model(self.critic, self.critic_optimizer)
+    def save(self, filename=None):
+        self.save_model(self.actor, self.actor_optimizer, filename=filename)
+        self.save_model(self.critic, self.critic_optimizer, filename=filename)
 
-    def load(self):
-        self.load_model(self.actor, self.actor_optimizer)
-        self.load_model(self.critic, self.critic_optimizer)
+    def load(self, filename=None):
+        self.load_model(self.actor, self.actor_optimizer, filename=filename)
+        self.load_model(self.critic, self.critic_optimizer, filename=filename)
 
     def reset(self):
         self.states.clear()
         self.actions.clear()
-        if self.plotting:
-            self.rewards_plot.plot_data(self.rewards_sum)
-        if self.rewards_sum > self.best_reward:
-            self.best_reward = self.rewards_sum
-            print(f"New highest rewards collected in one game: {self.best_reward}")
-        self.rewards_sum = 0
         self.rewards.clear()
         super().reset()

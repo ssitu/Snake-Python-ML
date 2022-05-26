@@ -21,6 +21,7 @@ class SnakeAgent(Agent):
         self.rewards_plot = Plot("Agent Performance", "Games Played", "Rewards", moving_average_length=1000)
         self.plotting = False
         self.training = True
+        self.game_area = self.snake_game.get_grid_width() * self.snake_game.get_grid_height()
 
     def update(self):
         """
@@ -60,8 +61,8 @@ class SnakeAgent(Agent):
         if self.snake_game.is_state_eaten_apple():
             return 1
         if self.snake_game.is_state_win():
-            return self.snake_game.get_grid_width() * self.snake_game.get_grid_height()
-        return 0
+            return self.game_area
+        return - 1 / self.game_area
 
     def take_action(self, action: int):
         if action == INPUT_UP:
