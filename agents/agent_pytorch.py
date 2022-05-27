@@ -129,8 +129,7 @@ class AgentPyTorch(SnakeAgent):
     def reset(self):
         super().reset()
         # Pass an initial state to the agent, and get an initial action
-        observation = self.get_observation()
-        self.take_action(self.get_action(observation, self.training))
+        self.take_action(self.get_action(self.get_observation(), self.training))
 
     def step(self):
         super().step()
