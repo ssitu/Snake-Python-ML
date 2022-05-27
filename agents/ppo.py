@@ -117,12 +117,22 @@ class AgentPPO(AgentPyTorch):
             self.critic_optimizer.step()
 
     def save(self, filename=None):
-        self.save_model(self.actor, self.actor_optimizer, filename=filename)
-        self.save_model(self.critic, self.critic_optimizer, filename=filename)
+        actor_filename = filename
+        critic_filename = filename
+        if filename:
+            actor_filename += "Actor"
+            critic_filename += "Critic"
+        self.save_model(self.actor, self.actor_optimizer, filename=actor_filename)
+        self.save_model(self.critic, self.critic_optimizer, filename=critic_filename)
 
     def load(self, filename=None):
-        self.load_model(self.actor, self.actor_optimizer, filename=filename)
-        self.load_model(self.critic, self.critic_optimizer, filename=filename)
+        actor_filename = filename
+        critic_filename = filename
+        if filename:
+            actor_filename += "Actor"
+            critic_filename += "Critic"
+        self.load_model(self.actor, self.actor_optimizer, filename=actor_filename)
+        self.load_model(self.critic, self.critic_optimizer, filename=critic_filename)
 
     def reset(self):
         self.states.clear()

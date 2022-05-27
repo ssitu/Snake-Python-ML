@@ -2,7 +2,7 @@ def main():
     from agents.snake_agent_factory import SnakeAgentFactory
     from games.snake import Snake
 
-    training = False
+    training = True
 
     snake = Snake(17, 17, render=not training)
     snake.set_speed(2)
