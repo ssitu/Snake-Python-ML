@@ -89,7 +89,7 @@ def calculate_discounted_rewards(rewards: List[float], discount_factor: float) -
 class AgentPyTorch(SnakeAgent):
     def __init__(self, snake_game: Snake, agent_name="", actor=None):
         super().__init__(snake_game)
-        device_setup()
+        self.device = device_setup()
         self.agent_name = agent_name
         observation_space = 1, 1, self.snake_game.get_grid_height(
         ), self.snake_game.get_grid_width()
@@ -215,7 +215,7 @@ class AgentPyTorch(SnakeAgent):
         """
         filename = self.generate_filename(model, optimizer, filename)
         try:
-            loaded = torch.load(filename)
+            loaded = torch.load(filename, map_location=self.device)
             model.load_state_dict(loaded[SAVE_MODEL_LABEL])
             optimizer.load_state_dict(loaded[SAVE_OPTIMIZER_LABEL])
         except FileNotFoundError:

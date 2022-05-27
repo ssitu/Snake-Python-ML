@@ -7,9 +7,8 @@ def main():
 
     training = True
     filename = "PPOCNN"
-    filename = None
 
-    snake = Snake(4, 4, render=not training)
+    snake = Snake(17, 17, render=not training)
     snake.set_speed(4)
     if training:
         snake.set_max_speed()
@@ -20,10 +19,10 @@ def main():
         1: (agent_factory.create_ppo, [], {"actor": actor4x4(), "critic": critic4x4()}),
         2: (agent_factory.create_ppo, [], {})
     }
-    constructor, args, kwargs = agents[1]
+    constructor, args, kwargs = agents[2]
     active_agent = constructor(*args, **kwargs)
     active_agent.set_training(training)
-    # active_agent.load(filename=filename)
+    active_agent.load(filename=filename)
     # active_agent.start_plot()
     snake.start()
     # active_agent.stop_plot()
@@ -33,7 +32,10 @@ def main():
 
 def actor4x4():
     return torch.nn.Sequential(
-        torch.nn.LazyConv2d(10, 2),
+        torch.nn.LazyConv2d(50, 3),
+        torch.nn.LeakyReLU(),
+        torch.nn.LazyConv2d(10, 3),
+        torch.nn.LeakyReLU(),
         torch.nn.Flatten(),
         torch.nn.LazyLinear(20),
         torch.nn.LeakyReLU(),
@@ -48,7 +50,10 @@ def actor4x4():
 
 def critic4x4():
     return torch.nn.Sequential(
-        torch.nn.LazyConv2d(10, 2),
+        torch.nn.LazyConv2d(50, 3),
+        torch.nn.LeakyReLU(),
+        torch.nn.LazyConv2d(10, 3),
+        torch.nn.LeakyReLU(),
         torch.nn.Flatten(),
         torch.nn.LazyLinear(20),
         torch.nn.LeakyReLU(),

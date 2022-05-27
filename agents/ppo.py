@@ -6,7 +6,7 @@ from agents.agent_pytorch import AgentPyTorch, calculate_discounted_rewards
 from games.snake import Snake
 
 ACTOR_LR = .0001
-CRITIC_LR = .0001
+CRITIC_LR = .0005
 DISCOUNT_FACTOR = 0.99
 EPSILON = .1
 # Times to train on the same experience
