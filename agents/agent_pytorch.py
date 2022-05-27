@@ -33,9 +33,11 @@ def compress_model_str(model: torch.nn.Sequential):
     compressed_str = ""
     for layer in model.children():
         layer_str = str(layer)
-        separated = layer_str[:-1].split("(", 1)  # [:-1] Leaves the end parenthesis out
+        # [:-1] Leaves the end parenthesis out
+        separated = layer_str[:-1].split("(", 1)
         layer_type, layer_info = separated
-        layer_compressed_str = layer_type[0] + "("  # First letter of the layer type, and open parenthesis
+        # First letter of the layer type, and open parenthesis
+        layer_compressed_str = layer_type[0] + "("
         # Separate the hyper parameters
         # Only split on commas that are not in parentheses
         layer_hyper_params = re.split(r",\s*(?![^()]*\))", layer_info)
@@ -85,12 +87,15 @@ def calculate_discounted_rewards(rewards: List[float], discount_factor: float) -
 
 
 class AgentPyTorch(SnakeAgent):
-    def __init__(self, snake_game: Snake, agent_name=""):
+    def __init__(self, snake_game: Snake, agent_name="", actor=None):
         super().__init__(snake_game)
         device_setup()
         self.agent_name = agent_name
-        observation_space = 1, 1, self.snake_game.get_grid_height(), self.snake_game.get_grid_width()
-        self.actor = self.construct_actor(observation_space, 4)
+        observation_space = 1, 1, self.snake_game.get_grid_height(
+        ), self.snake_game.get_grid_width()
+        self.actor = actor
+        if self.actor is None:
+            self.actor = self.construct_actor(observation_space, 4)
         summary(self.actor, observation_space)
         self.rewards_sum = 0
         self.best_reward = 0
@@ -152,9 +157,11 @@ class AgentPyTorch(SnakeAgent):
             self.rewards_plot.plot_data(self.rewards_sum)
         if self.rewards_sum > self.best_reward:
             self.best_reward = self.rewards_sum
-            print(f"New highest rewards collected in one game: {self.best_reward}")
+            print(
+                f"New highest rewards collected in one game: {self.best_reward}")
         games_played = self.snake_game.get_games_played()
-        self.average_rewards = (self.average_rewards * games_played + self.rewards_sum) / (games_played + 1)
+        self.average_rewards = (
+            self.average_rewards * games_played + self.rewards_sum) / (games_played + 1)
         self.rewards_sum = 0
 
         # Periodic Saving
@@ -162,7 +169,6 @@ class AgentPyTorch(SnakeAgent):
             self.save()
             print("Progress Saved")
             print(f"Average reward so far: {self.average_rewards}")
-
 
     def save(self):
         """
@@ -180,7 +186,8 @@ class AgentPyTorch(SnakeAgent):
 
     def generate_filename(self, model: torch.nn.Sequential, optimizer: torch.optim.Optimizer, filename: str = None):
         if filename is None:
-            filename = compress_model_str(model) + compress_optimizer_str(optimizer)
+            filename = compress_model_str(
+                model) + compress_optimizer_str(optimizer)
         filename = f"{utils.get_current_directory()}" \
                    f"{SAVED_MODELS_FOLDER}({self.agent_name}){filename}{SAVE_FILE_EXTENSION} "
         return filename
@@ -193,7 +200,8 @@ class AgentPyTorch(SnakeAgent):
         :param filename: The name of the file, set to None to generate a name based on the model parameters
         :return: None
         """
-        to_save = {SAVE_MODEL_LABEL: model.state_dict(), SAVE_OPTIMIZER_LABEL: optimizer.state_dict()}
+        to_save = {SAVE_MODEL_LABEL: model.state_dict(
+        ), SAVE_OPTIMIZER_LABEL: optimizer.state_dict()}
         filename = self.generate_filename(model, optimizer, filename)
         torch.save(to_save, filename)
 

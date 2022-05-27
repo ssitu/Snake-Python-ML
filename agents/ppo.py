@@ -19,16 +19,21 @@ SMALL_CONSTANT = .00001
 
 class AgentPPO(AgentPyTorch):
 
-    def __init__(self, snake_game: Snake, agent_name="AgentPPO"):
-        super().__init__(snake_game, agent_name=agent_name)
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=ACTOR_LR)
-        self.critic = self.construct_critic()
-        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=CRITIC_LR)
+    def __init__(self, snake_game: Snake, agent_name="AgentPPO", actor=None, critic=None):
+        super().__init__(snake_game, agent_name=agent_name, actor=actor)
+        self.actor_optimizer = torch.optim.Adam(
+            self.actor.parameters(), lr=ACTOR_LR)
+        self.critic = critic
+        if not self.critic:
+            self.critic = self.construct_critic()
+        self.critic_optimizer = torch.optim.Adam(
+            self.critic.parameters(), lr=CRITIC_LR)
         self.critic_loss_fn = torch.nn.HuberLoss()
         self.states = []
         self.actions = []
         self.rewards = []
-        summary(self.critic, (1, 1, self.snake_game.get_grid_height(), self.snake_game.get_grid_width()))
+        summary(self.critic, (1, 1, self.snake_game.get_grid_height(),
+                              self.snake_game.get_grid_width()))
 
     def construct_actor(self, obs_space, action_space) -> torch.nn.Sequential:
         return torch.nn.Sequential(
@@ -80,7 +85,8 @@ class AgentPPO(AgentPyTorch):
         old_probabilities = self.actor(states_batch)
         # Isolate the probabilities of the performed actions under the new policy
         # And, detach since it is used as a constant, not for training
-        old_action_probabilities = old_probabilities.gather(1, torch.tensor(self.actions).unsqueeze(1)).detach()
+        old_action_probabilities = old_probabilities.gather(
+            1, torch.tensor(self.actions).unsqueeze(1)).detach()
         for i in range(TRAININGS_PER_EPISODE):
             # L_clip = min( r * A, clip(r, 1-ep, 1+ep) * A )
 
@@ -89,24 +95,30 @@ class AgentPPO(AgentPyTorch):
             #
             # Probabilities of the current policy
             new_probabilities = self.actor(states_batch)
-            new_action_probabilities = new_probabilities.gather(1, torch.tensor(self.actions).unsqueeze(1))
+            new_action_probabilities = new_probabilities.gather(
+                1, torch.tensor(self.actions).unsqueeze(1))
             # Calculate ratios, r = p / p_old
             ratios = new_action_probabilities / old_action_probabilities
             # Clipped, clip(r, 1-ep, 1+ep)
             clipped_ratios = torch.clip(ratios, 1 - EPSILON, 1 + EPSILON)
             # Advantages, A = G - V(s)
-            discounted_rewards = torch.tensor(calculate_discounted_rewards(self.rewards, DISCOUNT_FACTOR)).unsqueeze(1)
+            discounted_rewards = torch.tensor(calculate_discounted_rewards(
+                self.rewards, DISCOUNT_FACTOR)).unsqueeze(1)
             state_values = self.critic(states_batch)
             advantages = discounted_rewards - state_values
-            advantages = advantages.detach()  # Prevent the loss_clip from affecting the gradients of the critic
+            # Prevent the loss_clip from affecting the gradients of the critic
+            advantages = advantages.detach()
 
             # Entropy
             entropy = ENTROPY_WEIGHT * - \
-                (new_probabilities * torch.log(torch.add(new_probabilities, SMALL_CONSTANT))).sum(dim=1)
+                (new_probabilities
+                 * torch.log(torch.add(new_probabilities, SMALL_CONSTANT))).sum(dim=1)
 
             # Losses, L_clip, L_critic, L_entropy
-            objective_clip = torch.min(ratios * advantages, clipped_ratios * advantages).mean()
-            loss_critic = (self.critic_loss_fn(state_values, discounted_rewards)).mean()
+            objective_clip = torch.min(
+                ratios * advantages, clipped_ratios * advantages).mean()
+            loss_critic = (self.critic_loss_fn(
+                state_values, discounted_rewards)).mean()
             objective_entropy = entropy.mean()
             loss = -objective_clip + loss_critic - objective_entropy
             # Training
@@ -122,8 +134,10 @@ class AgentPPO(AgentPyTorch):
         if filename:
             actor_filename += "Actor"
             critic_filename += "Critic"
-        self.save_model(self.actor, self.actor_optimizer, filename=actor_filename)
-        self.save_model(self.critic, self.critic_optimizer, filename=critic_filename)
+        self.save_model(self.actor, self.actor_optimizer,
+                        filename=actor_filename)
+        self.save_model(self.critic, self.critic_optimizer,
+                        filename=critic_filename)
 
     def load(self, filename=None):
         actor_filename = filename
@@ -131,8 +145,10 @@ class AgentPPO(AgentPyTorch):
         if filename:
             actor_filename += "Actor"
             critic_filename += "Critic"
-        self.load_model(self.actor, self.actor_optimizer, filename=actor_filename)
-        self.load_model(self.critic, self.critic_optimizer, filename=critic_filename)
+        self.load_model(self.actor, self.actor_optimizer,
+                        filename=actor_filename)
+        self.load_model(self.critic, self.critic_optimizer,
+                        filename=critic_filename)
 
     def reset(self):
         self.states.clear()

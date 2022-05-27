@@ -12,6 +12,6 @@ class SnakeAgentFactory:
     def create_naive(self) -> SnakeAgent:
         return Naive(self.snake_game)
 
-    def create_ppo(self) -> SnakeAgent:
+    def create_ppo(self, actor=None, critic=None) -> SnakeAgent:
         name = f"AgentPPO{self.snake_game.get_grid_width()-2}x{self.snake_game.get_grid_height()-2}"
-        return AgentPPO(self.snake_game, agent_name=name)
+        return AgentPPO(self.snake_game, agent_name=name, actor=actor, critic=critic)
