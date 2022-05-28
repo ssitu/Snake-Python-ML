@@ -110,16 +110,13 @@ class AgentPPO(AgentPyTorch):
             advantages = advantages.detach()
 
             # Entropy
-            entropy = ENTROPY_WEIGHT * - \
-                (new_probabilities
-                 * torch.log(torch.add(new_probabilities, SMALL_CONSTANT))).sum(dim=1)
+            entropy = ENTROPY_WEIGHT * - (
+                    new_probabilities * torch.log(torch.add(new_probabilities, SMALL_CONSTANT))).sum(dim=1)
 
             # Losses, L_clip, L_critic, L_entropy
-            objective_clip = torch.min(
-                ratios * advantages, clipped_ratios * advantages).mean()
-            loss_critic = (self.critic_loss_fn(
-                state_values, discounted_rewards)).mean()
-            objective_entropy = entropy.mean()
+            objective_clip = torch.min(ratios * advantages, clipped_ratios * advantages).sum()
+            loss_critic = (self.critic_loss_fn(state_values, discounted_rewards)).sum()
+            objective_entropy = entropy.sum()
             loss = -objective_clip + loss_critic - objective_entropy
             # Training
             self.actor_optimizer.zero_grad()
