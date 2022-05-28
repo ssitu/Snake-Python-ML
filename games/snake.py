@@ -24,7 +24,7 @@ class Snake(game.Game):
     _time_since_last_movement_secs = 0
     # Grid related
     _grid_cell_empty = 0
-    _grid_cell_snake_body_range = (0, 1)
+    _grid_cell_snake_body_range = (0, 1.5)
     _grid_cell_snake_body_range_size = _grid_cell_snake_body_range[1] - _grid_cell_snake_body_range[0]
     _grid_cell_snake_head = 5
     _grid_cell_apple = 10
