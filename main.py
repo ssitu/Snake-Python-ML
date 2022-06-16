@@ -6,7 +6,6 @@ def main():
     from games.snake import Snake
 
     training = True
-    filename = "PPOCNN"
 
     snake = Snake(17, 17, render=not training)
     snake.set_speed(4)
@@ -22,12 +21,12 @@ def main():
     constructor, args, kwargs = agents[2]
     active_agent = constructor(*args, **kwargs)
     active_agent.set_training(training)
-    active_agent.load(filename=filename)
+    active_agent.load()
     # active_agent.start_plot()
     snake.start()
     # active_agent.stop_plot()
     if training:
-        active_agent.save(filename=filename)
+        active_agent.save()
 
 
 def actor4x4():

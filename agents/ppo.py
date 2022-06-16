@@ -5,13 +5,13 @@ from torchinfo import summary
 from agents.agent_pytorch import AgentPyTorch, calculate_discounted_rewards
 from games.snake import Snake
 
-ACTOR_LR = .0001
-CRITIC_LR = .0005
+ACTOR_LR = .005
+CRITIC_LR = .001
 DISCOUNT_FACTOR = 0.99
-EPSILON = .1
+EPSILON = .2
 # Times to train on the same experience
 TRAININGS_PER_EPISODE = 5
-ENTROPY_WEIGHT = .1
+ENTROPY_WEIGHT = .05
 
 # To prevent NANs
 SMALL_CONSTANT = .00001
@@ -44,11 +44,15 @@ class AgentPPO(AgentPyTorch):
             torch.nn.LeakyReLU(),
             torch.nn.MaxPool2d(2, padding=1),
             torch.nn.Flatten(),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(50),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(30),
+            torch.nn.LazyLinear(50),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(10),
+            torch.nn.LazyLinear(50),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(50),
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(action_space),
             torch.nn.Softmax(dim=-1)
@@ -65,9 +69,13 @@ class AgentPPO(AgentPyTorch):
             torch.nn.Flatten(),
             torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(100),
+            torch.nn.LazyLinear(50),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(100),
+            torch.nn.LazyLinear(30),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(20),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(10),
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1),
         )
@@ -125,10 +133,10 @@ class AgentPPO(AgentPyTorch):
             self.actor_optimizer.step()
             self.critic_optimizer.step()
 
-    def save(self, filename=None):
+    def save(self, filename=""):
         actor_filename = filename
         critic_filename = filename
-        if filename:
+        if filename or filename == "":
             actor_filename += "Actor"
             critic_filename += "Critic"
         self.save_model(self.actor, self.actor_optimizer,
@@ -136,10 +144,10 @@ class AgentPPO(AgentPyTorch):
         self.save_model(self.critic, self.critic_optimizer,
                         filename=critic_filename)
 
-    def load(self, filename=None):
+    def load(self, filename=""):
         actor_filename = filename
         critic_filename = filename
-        if filename:
+        if filename or filename == "":
             actor_filename += "Actor"
             critic_filename += "Critic"
         self.load_model(self.actor, self.actor_optimizer,
