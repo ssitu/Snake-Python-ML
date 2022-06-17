@@ -1,4 +1,3 @@
-import re
 from typing import List
 
 import numpy
@@ -29,54 +28,6 @@ def device_setup():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def compress_model_str(model: torch.nn.Sequential):
-    compressed_str = ""
-    for layer in model.children():
-        layer_str = str(layer)
-        # [:-1] Leaves the end parenthesis out
-        separated = layer_str[:-1].split("(", 1)
-        layer_type, layer_info = separated
-        # First letter of the layer type, and open parenthesis
-        layer_compressed_str = layer_type[0] + "("
-        # Separate the hyper parameters
-        # Only split on commas that are not in parentheses
-        layer_hyper_params = re.split(r",\s*(?![^()]*\))", layer_info)
-        hyper_params_iter = iter(layer_hyper_params)
-        hyper_param = next(hyper_params_iter).split("=")
-        # Get the second entry if there is an equals, otherwise the value is the string
-        if len(hyper_param) > 1:
-            hyper_param = hyper_param[1]
-        layer_compressed_str += hyper_param[0]
-        for hyper_param in hyper_params_iter:
-            hyper_param_split = hyper_param.split("=")
-            if len(hyper_param_split) > 1:
-                hyper_param = hyper_param_split[1]
-            layer_compressed_str += "," + hyper_param
-        # Tailing parenthesis to match the first
-        layer_compressed_str += ")"
-        # Add to the string
-        compressed_str += layer_compressed_str
-    return compressed_str
-
-
-def compress_optimizer_str(optimizer: torch.optim.Optimizer):
-    split_info = str(optimizer).split("\n")
-    info_iter = iter(split_info)
-    optimizer_name = next(info_iter).split(" ")[0]  # <OptimizerName> (
-    next(info_iter)  # Parameter Group 0
-    compressed = optimizer_name + "("
-    # Do first iteration manually, to prevent leading comma
-    key, val = next(info_iter).split(": ")
-    compressed += val
-    for param in info_iter:
-        if param == ")":
-            break
-        key, val = param.split(": ")
-        compressed += "," + val
-    compressed += ")"
-    return compressed
-
-
 def calculate_discounted_rewards(rewards: List[float], discount_factor: float) -> List[float]:
     discounted_reward = 0.
     discounted_rewards = [0.] * len(rewards)
@@ -91,8 +42,7 @@ class AgentPyTorch(SnakeAgent):
         super().__init__(snake_game)
         self.device = device_setup()
         self.agent_name = agent_name
-        observation_space = 1, 1, self.snake_game.get_grid_height(
-        ), self.snake_game.get_grid_width()
+        observation_space = 1, 1, self.snake_game.get_grid_height(), self.snake_game.get_grid_width()
         self.actor = actor
         if self.actor is None:
             self.actor = self.construct_actor(observation_space, 4)
@@ -127,7 +77,6 @@ class AgentPyTorch(SnakeAgent):
         pass
 
     def reset(self):
-        super().reset()
         # Pass an initial state to the agent, and get an initial action
         self.take_action(self.get_action(self.get_observation(), self.training))
 
@@ -156,11 +105,9 @@ class AgentPyTorch(SnakeAgent):
             self.rewards_plot.plot_data(self.rewards_sum)
         if self.rewards_sum > self.best_reward:
             self.best_reward = self.rewards_sum
-            print(
-                f"New highest rewards collected in one game: {self.best_reward}")
+            print(f"New highest rewards collected in one game: {self.best_reward}")
         games_played = self.snake_game.get_games_played()
-        self.average_rewards = (
-            self.average_rewards * games_played + self.rewards_sum) / (games_played + 1)
+        self.average_rewards = (self.average_rewards * games_played + self.rewards_sum) / (games_played + 1)
         self.rewards_sum = 0
 
         # Periodic Saving
@@ -183,15 +130,12 @@ class AgentPyTorch(SnakeAgent):
         """
         raise NotImplementedError
 
-    def generate_filename(self, model: torch.nn.Sequential, optimizer: torch.optim.Optimizer, filename: str = None):
-        if filename is None:
-            filename = compress_model_str(
-                model) + compress_optimizer_str(optimizer)
-        filename = f"{utils.get_current_directory()}" \
-                   f"{SAVED_MODELS_FOLDER}({self.agent_name}){filename}{SAVE_FILE_EXTENSION} "
-        return filename
+    def generate_filepath(self, filename: str = ""):
+        current_dir = utils.get_current_directory()
+        filepath = f"{current_dir}{SAVED_MODELS_FOLDER}({self.agent_name}){filename}{SAVE_FILE_EXTENSION}"
+        return filepath
 
-    def save_model(self, model: torch.nn.Sequential, optimizer: torch.optim.Optimizer, filename=None):
+    def save_model(self, model: torch.nn.Sequential, optimizer: torch.optim.Optimizer, filename=""):
         """
         Save a model and its actor_optimizer to a file
         :param model: The model to save
@@ -199,12 +143,14 @@ class AgentPyTorch(SnakeAgent):
         :param filename: The name of the file, set to None to generate a name based on the model parameters
         :return: None
         """
-        to_save = {SAVE_MODEL_LABEL: model.state_dict(
-        ), SAVE_OPTIMIZER_LABEL: optimizer.state_dict()}
-        filename = self.generate_filename(model, optimizer, filename)
-        torch.save(to_save, filename)
+        to_save = {
+            SAVE_MODEL_LABEL: model.state_dict(),
+            SAVE_OPTIMIZER_LABEL: optimizer.state_dict(),
+        }
+        filepath = self.generate_filepath(filename)
+        torch.save(to_save, filepath)
 
-    def load_model(self, model: torch.nn.Sequential, optimizer: torch.optim.Optimizer, filename=None):
+    def load_model(self, model: torch.nn.Sequential, optimizer: torch.optim.Optimizer, filename=""):
         """
         Load a model and its actor_optimizer from a file generated by the save_model function
         :param model: The model to load into
@@ -212,10 +158,10 @@ class AgentPyTorch(SnakeAgent):
         :param filename: The name of the file to load from
         :return: None
         """
-        filename = self.generate_filename(model, optimizer, filename)
+        filepath = self.generate_filepath(filename)
         try:
-            loaded = torch.load(filename, map_location=self.device)
+            loaded = torch.load(filepath, map_location=self.device)
             model.load_state_dict(loaded[SAVE_MODEL_LABEL])
             optimizer.load_state_dict(loaded[SAVE_OPTIMIZER_LABEL])
         except FileNotFoundError:
-            print(f"Could not load model, file not found: \n{filename}")
+            print(f"Could not load model, file not found: \n{filepath}")

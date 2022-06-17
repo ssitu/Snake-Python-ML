@@ -42,9 +42,6 @@ class SnakeAgent(Agent):
         """
         pass
 
-    def reset(self):
-        pass
-
     def end_of_episode(self):
         """
         Is called at the end of the game
