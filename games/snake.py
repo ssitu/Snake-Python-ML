@@ -80,6 +80,7 @@ class Snake(game.Game):
             pygame.display.flip()
         self.set_speed(- 6 / (grid_width * grid_height) + 1)
         self.games_played = -1  # Is added to after a reset, -1 to leave out the first reset
+        self.print_win = True
         print("Snake initialization finished.")
 
     def _print_grid(self):
@@ -309,7 +310,8 @@ class Snake(game.Game):
                 self._toggleable_sleep(self._time_movement_delay_secs * 2)
                 self._routine_reset_game()
             if self.is_state_win():
-                print("Win!")
+                if self.print_win:
+                    print("Win!")
                 # Fill each cell with the color of the snake head to indicate a win
                 for row in range(1, self._grid_visible_height + 1):
                     for col in range(1, self._grid_visible_width + 1):
@@ -404,3 +406,6 @@ class Snake(game.Game):
 
     def get_games_played(self):
         return self.games_played
+
+    def set_print_win(self, printing: bool):
+        self.print_win = printing

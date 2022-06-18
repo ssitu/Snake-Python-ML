@@ -1,162 +1,109 @@
+import numpy
 import torch
-# Constants
-from torchinfo import summary
 
-from agents.agent_pytorch import AgentPyTorch, calculate_discounted_rewards
+from agents import utils
+from agents.actor_critic_networks import ACNet
+from agents.agent_torch import AgentTorch
 from games.snake import Snake
 
-ACTOR_LR = .005
-CRITIC_LR = .001
+# Constants
 DISCOUNT_FACTOR = 0.99
 EPSILON = .2
 # Times to train on the same experience
-TRAININGS_PER_EPISODE = 5
-ENTROPY_WEIGHT = .05
+EXTRA_TRAININGS_PER_EPISODE = 5
+ENTROPY_WEIGHT = .01
+# Small constant to prevent NANs
+SMALL_CONSTANT = 1e-6
 
-# To prevent NANs
-SMALL_CONSTANT = .00001
 
+class AgentPPO(AgentTorch):
 
-class AgentPPO(AgentPyTorch):
-
-    def __init__(self, snake_game: Snake, agent_name="AgentPPO", actor=None, critic=None):
-        super().__init__(snake_game, agent_name=agent_name, actor=actor)
-        self.actor_optimizer = torch.optim.Adam(
-            self.actor.parameters(), lr=ACTOR_LR)
-        self.critic = critic
-        if not self.critic:
-            self.critic = self.construct_critic()
-        self.critic_optimizer = torch.optim.Adam(
-            self.critic.parameters(), lr=CRITIC_LR)
+    def __init__(self, snake_game: Snake, model: ACNet, optimizer: torch.optim.Optimizer):
+        super().__init__(snake_game)
+        self.model = model
+        self.optimizer = optimizer
         self.critic_loss_fn = torch.nn.HuberLoss()
         self.states = []
         self.actions = []
         self.rewards = []
-        summary(self.critic, (1, 1, self.snake_game.get_grid_height(),
-                              self.snake_game.get_grid_width()))
+        self.probabilities = []
 
-    def construct_actor(self, obs_space, action_space) -> torch.nn.Sequential:
-        return torch.nn.Sequential(
-            torch.nn.LazyConv2d(50, 10),
-            torch.nn.LeakyReLU(),
-            torch.nn.MaxPool2d(3, stride=2, padding=1),
-            torch.nn.LazyConv2d(30, 3, padding=1),
-            torch.nn.LeakyReLU(),
-            torch.nn.MaxPool2d(2, padding=1),
-            torch.nn.Flatten(),
-            torch.nn.LazyLinear(100),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(50),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(50),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(50),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(50),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(action_space),
-            torch.nn.Softmax(dim=-1)
-        )
-
-    def construct_critic(self) -> torch.nn.Sequential:
-        return torch.nn.Sequential(
-            torch.nn.LazyConv2d(50, 10),
-            torch.nn.LeakyReLU(),
-            torch.nn.MaxPool2d(3, stride=2, padding=1),
-            torch.nn.LazyConv2d(30, 3, padding=1),
-            torch.nn.LeakyReLU(),
-            torch.nn.MaxPool2d(2, padding=1),
-            torch.nn.Flatten(),
-            torch.nn.LazyLinear(100),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(50),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(30),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(20),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(10),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(1),
-        )
-
-    def collect_experience(self, state, distribution, action):
-        self.states.append(state)
-        self.actions.append(action)
+    def get_action(self, obs: numpy.ndarray, training=True):
+        state = torch.tensor(obs, dtype=torch.float).unsqueeze(0)
+        # Sample action
+        probabilities, _ = self.model(state)
+        dist = torch.distributions.Categorical(probs=probabilities)
+        action = dist.sample().item()
+        if training:
+            self.states.append(state)
+            self.probabilities.append(probabilities)
+            self.actions.append(action)
+        return action
 
     def give_reward(self, reward: float):
         super().give_reward(reward)
         self.rewards.append(reward)
 
+    def discounted_rewards(self):
+        discounted_reward = 0.
+        discounted_rewards = [0.] * len(self.rewards)
+        for time_step, reward in zip(reversed(range(len(self.rewards))), reversed(self.rewards)):
+            discounted_reward = DISCOUNT_FACTOR * discounted_reward + reward
+            discounted_rewards[time_step] = discounted_reward
+        return discounted_rewards
+
     def train_agent(self):
-        states_batch = torch.cat(self.states, 0).detach()
-        old_probabilities = self.actor(states_batch)
+        states_batch = torch.cat(self.states).detach()
+        old_probabilities = torch.cat(self.probabilities).detach()
         # Isolate the probabilities of the performed actions under the new policy
-        # And, detach since it is used as a constant, not for training
-        old_action_probabilities = old_probabilities.gather(
-            1, torch.tensor(self.actions).unsqueeze(1)).detach()
-        for i in range(TRAININGS_PER_EPISODE):
-            # L_clip = min( r * A, clip(r, 1-ep, 1+ep) * A )
+        old_action_probabilities = old_probabilities.gather(1, torch.tensor(self.actions).unsqueeze(1)).detach()
+
+        # Do one iteration with the already calculated probabilities during the episode
+        # In this case, ratio = 0
+        for i in range(EXTRA_TRAININGS_PER_EPISODE):
+            # L_clip = min(r(th)A, clip(r(th), 1 - ep, 1 + ep)A)
 
             #
             # Calculate the ratio of the probability of the action under the new policy over the old
             #
+
             # Probabilities of the current policy
-            new_probabilities = self.actor(states_batch)
-            new_action_probabilities = new_probabilities.gather(
-                1, torch.tensor(self.actions).unsqueeze(1))
-            # Calculate ratios, r = p / p_old
+            new_probabilities, state_values = self.model(states_batch)
+            new_action_probabilities = new_probabilities.gather(1, torch.tensor(self.actions).unsqueeze(1))
+            # Calculate ratios
             ratios = new_action_probabilities / old_action_probabilities
-            # Clipped, clip(r, 1-ep, 1+ep)
+
+            # Clipped
             clipped_ratios = torch.clip(ratios, 1 - EPSILON, 1 + EPSILON)
-            # Advantages, A = G - V(s)
-            discounted_rewards = torch.tensor(calculate_discounted_rewards(
-                self.rewards, DISCOUNT_FACTOR)).unsqueeze(1)
-            state_values = self.critic(states_batch)
+            # Advantages
+            discounted_rewards = torch.tensor(self.discounted_rewards()).unsqueeze(1)
             advantages = discounted_rewards - state_values
-            # Prevent the loss_clip from affecting the gradients of the critic
-            advantages = advantages.detach()
+            advantages = advantages.detach()  # Prevent the loss_clip from affecting the gradients of the critic
 
             # Entropy
-            entropy = ENTROPY_WEIGHT * - (
-                    new_probabilities * torch.log(torch.add(new_probabilities, SMALL_CONSTANT))).sum(dim=1)
+            entropy = ENTROPY_WEIGHT * -(
+                    new_probabilities * torch.log(torch.add(new_probabilities, SMALL_CONSTANT))
+            ).sum(dim=1)
 
-            # Losses, L_clip, L_critic, L_entropy
+            # Loss
             objective_clip = torch.min(ratios * advantages, clipped_ratios * advantages).sum()
             loss_critic = (self.critic_loss_fn(state_values, discounted_rewards)).sum()
             objective_entropy = entropy.sum()
             loss = -objective_clip + loss_critic - objective_entropy
             # Training
-            self.actor_optimizer.zero_grad()
-            self.critic_optimizer.zero_grad()
-            loss.backward()
-            self.actor_optimizer.step()
-            self.critic_optimizer.step()
+            self.optimizer.zero_grad()
+            loss.backward(retain_graph=False)
+            self.optimizer.step()
 
-    def save(self, filename=""):
-        actor_filename = filename
-        critic_filename = filename
-        if filename or filename == "":
-            actor_filename += "Actor"
-            critic_filename += "Critic"
-        self.save_model(self.actor, self.actor_optimizer,
-                        filename=actor_filename)
-        self.save_model(self.critic, self.critic_optimizer,
-                        filename=critic_filename)
+    def save(self):
+        utils.save(self.model, self.optimizer, self.model.name)
 
-    def load(self, filename=""):
-        actor_filename = filename
-        critic_filename = filename
-        if filename or filename == "":
-            actor_filename += "Actor"
-            critic_filename += "Critic"
-        self.load_model(self.actor, self.actor_optimizer,
-                        filename=actor_filename)
-        self.load_model(self.critic, self.critic_optimizer,
-                        filename=critic_filename)
+    def load(self):
+        utils.load(self.model, self.optimizer, self.model.name)
 
     def reset(self):
         self.states.clear()
         self.actions.clear()
         self.rewards.clear()
+        self.probabilities.clear()
         super().reset()

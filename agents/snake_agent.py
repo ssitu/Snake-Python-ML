@@ -18,7 +18,7 @@ class SnakeAgent(Agent):
     def __init__(self, env: Snake):
         super().__init__(env)
         self.snake_game = env
-        self.rewards_plot = Plot("Agent Performance", "Games Played", "Rewards", moving_average_length=1000)
+        self.rewards_plot = Plot("Agent Performance", "Games Played", "Rewards", moving_average_length=10000)
         self.plotting = False
         self.training = True
         self.game_area = self.snake_game.get_grid_width() * self.snake_game.get_grid_height()

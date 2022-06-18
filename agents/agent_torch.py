@@ -15,57 +15,16 @@ SAVED_MODELS_FOLDER = "saved_models/"
 EPISODES_BETWEEN_SAVES = 1000
 
 
-def device_setup():
-    cuda_available = torch.cuda.is_available()
-    print(f"CUDA available: {cuda_available}")
-    if cuda_available:
-        print(f"CUDA version: {torch.version.cuda}")
-        print(f"CUDA device count: {torch.cuda.device_count()}")
-        cuda_id = torch.cuda.current_device()
-        print(f"CUDA current device id: {cuda_id}")
-        print(f"CUDA device name: {torch.cuda.get_device_name(cuda_id)}")
-        torch.set_default_tensor_type("torch.cuda.FloatTensor")
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def calculate_discounted_rewards(rewards: List[float], discount_factor: float) -> List[float]:
-    discounted_reward = 0.
-    discounted_rewards = [0.] * len(rewards)
-    for time_step, reward in zip(reversed(range(len(rewards))), reversed(rewards)):
-        discounted_reward = discount_factor * discounted_reward + reward
-        discounted_rewards[time_step] = discounted_reward
-    return discounted_rewards
-
-
-class AgentPyTorch(SnakeAgent):
-    def __init__(self, snake_game: Snake, agent_name="", actor=None):
+class AgentTorch(SnakeAgent):
+    def __init__(self, snake_game: Snake):
         super().__init__(snake_game)
-        self.device = device_setup()
-        self.agent_name = agent_name
         observation_space = 1, 1, self.snake_game.get_grid_height(), self.snake_game.get_grid_width()
-        self.actor = actor
-        if self.actor is None:
-            self.actor = self.construct_actor(observation_space, 4)
-        summary(self.actor, observation_space)
         self.rewards_sum = 0
         self.best_reward = 0
         self.average_rewards = 0
 
-    def construct_actor(self, obs_space, action_space) -> torch.nn.Sequential:
-        raise NotImplementedError
-
-    def collect_experience(self, state: torch.Tensor, distribution: torch.distributions.Categorical, action: int):
-        raise NotImplementedError
-
     def get_action(self, observation: numpy.ndarray, training=True) -> int:
-        state = torch.tensor(observation, dtype=torch.float).unsqueeze(0)
-        # Sample action
-        probabilities = self.actor(state)
-        dist = torch.distributions.Categorical(probs=probabilities)
-        action = dist.sample().item()
-        if training:
-            self.collect_experience(state, dist, action)
-        return action
+        raise NotImplementedError
 
     def train_agent(self):
         pass
