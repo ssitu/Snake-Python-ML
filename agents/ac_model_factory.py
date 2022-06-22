@@ -41,36 +41,42 @@ class ModelFactory:
         model = acn.TwoHeaded(body, actor, critic, model_name)
         model.initialize(self.observation_space)
         optimizer = torch.optim.Adam([
-            {"params": body.parameters(), "lr": .0001},
-            {"params": actor.parameters(), "lr": .0005},
-            {"params": critic.parameters(), 'lr': .001}
+            {"params": body.parameters(), "lr": .00005},
+            {"params": actor.parameters(), "lr": .0001},
+            {"params": critic.parameters(), 'lr': .0005}
         ])
         return model, optimizer
 
     def two_headed_deep_large(self, model_name: str) -> Tuple[acn.ACNet, torch.optim.Optimizer]:
         body = torch.nn.Sequential(
-            torch.nn.LazyConv2d(20, 3),
+            torch.nn.LazyConv2d(10, 3, padding=1),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyConv2d(30, 5),
+            torch.nn.MaxPool2d(2),
+            torch.nn.LazyConv2d(30, 3, padding=1),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyConv2d(40, 4),
+            torch.nn.MaxPool2d(2),
+            torch.nn.LazyConv2d(40, 3, padding=1),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyConv2d(50, 3),
+            torch.nn.MaxPool2d(2),
+            torch.nn.LazyConv2d(100, 2, padding=1),
             torch.nn.LeakyReLU(),
+            torch.nn.MaxPool2d(2),
             torch.nn.Flatten(),
         )
         actor = torch.nn.Sequential(
             torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(120),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(150),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(110),
+            torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(70),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(100),
+            torch.nn.LeakyReLU(),
+            torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(self.action_space),
             torch.nn.Softmax(dim=-1)
@@ -78,31 +84,25 @@ class ModelFactory:
         critic = torch.nn.Sequential(
             torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(50),
+            torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(35),
+            torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(30),
+            torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(30),
+            torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(25),
+            torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(20),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(15),
-            torch.nn.LeakyReLU(),
-            torch.nn.LazyLinear(10),
+            torch.nn.LazyLinear(100),
             torch.nn.LeakyReLU(),
             torch.nn.LazyLinear(1)
         )
         model = acn.TwoHeaded(body, actor, critic, model_name)
         model.initialize(self.observation_space)
         optimizer = torch.optim.Adam([
-            {"params": body.parameters(), "lr": .0001},
-            {"params": actor.parameters(), "lr": .0005},
-            {"params": critic.parameters(), 'lr': .001}
+            {"params": body.parameters(), "lr": .00005},
+            {"params": actor.parameters(), "lr": .0001},
+            {"params": critic.parameters(), 'lr': .0005}
         ])
         return model, optimizer
-
-

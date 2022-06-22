@@ -1,8 +1,5 @@
-from typing import List
-
 import numpy
 import torch
-from torchinfo import summary
 
 from agents.snake_agent import SnakeAgent
 from games.snake import Snake
@@ -18,7 +15,7 @@ EPISODES_BETWEEN_SAVES = 1000
 class AgentTorch(SnakeAgent):
     def __init__(self, snake_game: Snake):
         super().__init__(snake_game)
-        observation_space = 1, 1, self.snake_game.get_grid_height(), self.snake_game.get_grid_width()
+        # observation_space = 1, 1, self.snake_game.get_grid_height(), self.snake_game.get_grid_width()
         self.rewards_sum = 0
         self.best_reward = 0
         self.average_rewards = 0

@@ -1,7 +1,4 @@
-import torch
-
 from agents.ac_model_factory import ModelFactory
-from agents.actor_critic_networks import ACNet
 from agents.naive import Naive
 from agents.ppo import AgentPPO
 from agents.snake_agent import SnakeAgent
